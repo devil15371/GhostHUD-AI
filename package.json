@@ -1,0 +1,57 @@
+{
+  "name": "ghosthud-ai",
+  "version": "1.0.0",
+  "description": "Always-on-top translucent AI study companion for lectures, PDFs, and coding across Mac, Windows, Chrome, and Brave.",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "web": "node server.js",
+    "test": "node -c electron/main.js && node -c src/app.js && echo 'All syntax checks passed!'",
+    "dist": "electron-builder",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win"
+  },
+  "build": {
+    "appId": "com.ghosthud.ai",
+    "productName": "GhostHUD AI",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "src/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.education",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    }
+  },
+  "keywords": [
+    "floating-ai",
+    "lecture-companion",
+    "ghost-hud",
+    "gemini-vision",
+    "pip",
+    "electron"
+  ],
+  "author": "devil15371",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^41.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "dependencies": {
+    "katex": "^0.16.22",
+    "marked": "^17.0.3"
+  }
+}

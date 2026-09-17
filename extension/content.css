@@ -1,0 +1,75 @@
+/* GhostHUD Extension Injected Floating Pill and Frame */
+#ghosthud-ext-root {
+  position: fixed;
+  z-index: 2147483647; /* Maximum z-index */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+#ghosthud-ext-pill {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  background: rgba(13, 16, 23, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #fff;
+  border-radius: 9999px;
+  padding: 6px 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 10px rgba(99, 102, 241, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.3s ease;
+  user-select: none;
+}
+
+#ghosthud-ext-pill:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 14px rgba(99, 102, 241, 0.4);
+}
+
+.ghosthud-pill-inner {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ghosthud-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #06b6d4;
+  box-shadow: 0 0 6px #06b6d4;
+}
+
+.ghosthud-pill-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+#ghosthud-ext-frame-wrapper {
+  position: fixed;
+  top: 60px;
+  right: 18px;
+  width: 390px;
+  height: 560px;
+  max-width: calc(100vw - 36px);
+  max-height: calc(100vh - 80px);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  animation: ghosthud-slide-down 0.2s ease;
+}
+
+@keyframes ghosthud-slide-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+#ghosthud-ext-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+}

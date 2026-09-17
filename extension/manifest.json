@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "GhostHUD AI — Floating Lecture Assistant",
+  "version": "1.0.0",
+  "description": "Always-on-top translucent AI study companion for YouTube lectures, PDFs, and courses in Chrome & Brave.",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "action": {
+    "default_title": "Toggle GhostHUD AI"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/index.html",
+        "src/style.css",
+        "src/app.js",
+        "src/pip.js",
+        "src/vendor/*"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
