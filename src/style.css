@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Koko — 3D Floating Anime Study Companion
+   Koko — Alive Anime Study Companion
    Tailored for Mac & Windows Laptop Workflows
    ========================================================================== */
 
@@ -87,7 +87,7 @@ body.koko-body {
 }
 
 /* ==========================================================================
-   1. 3D ANIME COMPANION MASCOT STAGE (Idle Desk Pet)
+   1. ALIVE COMPANION MASCOT STAGE (Interactive Study Companion)
    ========================================================================== */
 
 .mascot-stage {
@@ -121,7 +121,7 @@ body.koko-body {
   align-items: center;
   justify-content: center;
   cursor: grab;
-  -webkit-app-region: drag; /* Dedicated drag zone */
+  -webkit-app-region: drag; /* Dedicated drag handle */
   z-index: 20;
 }
 
@@ -135,61 +135,83 @@ body.koko-body {
   letter-spacing: 1px;
 }
 
-/* 3D Figure Wrapper */
-.mascot-chibi-wrapper {
+/* Alive Figure Interactive Wrapper */
+.mascot-figure-wrapper {
   position: relative;
-  width: 140px;
-  height: 160px;
+  width: 145px;
+  height: 165px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer !important;
   -webkit-app-region: no-drag !important;
-  animation: float-3d 3.6s ease-in-out infinite;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease;
+  animation: alive-breathe 4s ease-in-out infinite;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.mascot-chibi-wrapper:hover {
-  transform: scale(1.05) translateY(-3px);
-  filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.5));
+.mascot-figure-wrapper:hover {
+  transform: scale(1.04) translateY(-2px);
 }
 
-.mascot-glow-ring {
+.mascot-ambient-glow {
   position: absolute;
-  width: 120px;
-  height: 120px;
+  width: 130px;
+  height: 130px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.2) 0%, rgba(192, 132, 252, 0.15) 50%, transparent 70%);
-  filter: blur(10px);
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.22) 0%, rgba(251, 191, 36, 0.18) 45%, transparent 70%);
+  filter: blur(12px);
   z-index: 1;
 }
 
-.mascot-3d-img {
+/* Dual State Images (Cross-Fade on Hover for Living Reaction) */
+.companion-state-img {
+  position: absolute;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  position: relative;
   z-index: 2;
-  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.8));
+  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.75));
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s ease;
   pointer-events: auto !important;
   cursor: pointer !important;
 }
 
-@keyframes float-3d {
+.companion-state-img.state-idle {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.companion-state-img.state-active {
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+/* Living Hover Reaction: She looks up from her tea, smiles, and holds up her notebook! */
+.mascot-stage:hover .companion-state-img.state-idle {
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+.mascot-stage:hover .companion-state-img.state-active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@keyframes alive-breathe {
   0%, 100% {
-    transform: translateY(0px) rotate(0deg);
+    transform: translateY(0px) scale(1);
   }
   50% {
-    transform: translateY(-6px) rotate(1deg);
+    transform: translateY(-5px) scale(1.015);
   }
 }
 
-/* Speech Bubble above 3D Figure */
+/* Speech Bubble above Alive Figure */
 .mascot-bubble {
   position: absolute;
-  top: 18px;
+  top: 14px;
   background: rgba(13, 17, 27, 0.95);
-  border: 1px solid rgba(56, 189, 248, 0.4);
+  border: 1px solid rgba(244, 114, 182, 0.45);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   padding: 4px 10px;
@@ -198,15 +220,16 @@ body.koko-body {
   font-weight: 600;
   color: #fff;
   white-space: nowrap;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 0 12px rgba(56, 189, 248, 0.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 0 12px rgba(244, 114, 182, 0.25);
   animation: bubble-pop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer !important;
   -webkit-app-region: no-drag !important;
   z-index: 15;
+  transition: all 0.2s ease;
 }
 
 .mascot-bubble:hover {
-  border-color: var(--accent-pink);
+  border-color: var(--accent-cyan);
   transform: scale(1.04);
 }
 
@@ -215,10 +238,10 @@ body.koko-body {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Wake button pill below 3D figure */
+/* Wake prompt pill */
 .mascot-wake-pill {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(192, 132, 252, 0.25));
-  border: 1px solid rgba(56, 189, 248, 0.45);
+  background: linear-gradient(135deg, rgba(244, 114, 182, 0.3), rgba(99, 102, 241, 0.3));
+  border: 1px solid rgba(244, 114, 182, 0.5);
   backdrop-filter: blur(10px);
   color: #fff;
   padding: 3px 10px;
@@ -228,19 +251,19 @@ body.koko-body {
   cursor: pointer !important;
   -webkit-app-region: no-drag !important;
   transition: all 0.2s ease;
-  margin-top: -4px;
+  margin-top: -6px;
   z-index: 10;
 }
 
 .mascot-wake-pill:hover {
-  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+  background: linear-gradient(135deg, var(--accent-pink), var(--accent-indigo));
   transform: scale(1.05);
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+  box-shadow: 0 0 12px rgba(244, 114, 182, 0.5);
 }
 
 /* ==========================================================================
    2. FULL STUDY HUD WINDOW
-   ========================================================================= */
+   ========================================================================== */
 
 .hud-window {
   width: 100%;
@@ -292,7 +315,7 @@ body.koko-body {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+  background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
   padding: 1.5px;
   flex-shrink: 0;
 }
@@ -339,9 +362,9 @@ body.koko-body {
 .companion-tag {
   font-size: 9px;
   font-weight: 700;
-  background: rgba(56, 189, 248, 0.16);
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  color: var(--accent-cyan);
+  background: rgba(244, 114, 182, 0.16);
+  border: 1px solid rgba(244, 114, 182, 0.35);
+  color: var(--accent-pink);
   padding: 0 5px;
   border-radius: 4px;
 }
@@ -529,8 +552,8 @@ body.koko-body {
 /* Welcome Card */
 .cozy-welcome-card {
   padding: 16px;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(56, 189, 248, 0.04));
-  border: 1px dashed rgba(56, 189, 248, 0.25);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(244, 114, 182, 0.04));
+  border: 1px dashed rgba(244, 114, 182, 0.25);
   border-radius: 14px;
   text-align: center;
   display: flex;
@@ -545,8 +568,8 @@ body.koko-body {
   height: 56px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--accent-cyan);
-  box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+  border: 2px solid var(--accent-pink);
+  box-shadow: 0 0 16px rgba(244, 114, 182, 0.4);
 }
 
 .welcome-words h4 {
@@ -720,12 +743,12 @@ body.koko-body {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--accent-cyan);
+  background: var(--accent-pink);
   animation: koko-bounce 1.3s infinite ease-in-out;
 }
 
 .koko-dot:nth-child(2) { animation-delay: 0.2s; background: var(--accent-purple); }
-.koko-dot:nth-child(3) { animation-delay: 0.4s; background: var(--accent-pink); }
+.koko-dot:nth-child(3) { animation-delay: 0.4s; background: var(--accent-cyan); }
 
 @keyframes koko-bounce {
   0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
@@ -868,7 +891,7 @@ body.koko-body {
 }
 
 .bar-send-btn {
-  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+  background: linear-gradient(135deg, var(--accent-pink), var(--accent-indigo));
   color: #fff;
   border: none;
   width: 28px;
@@ -885,7 +908,7 @@ body.koko-body {
 .bar-send-btn:hover {
   transform: translateY(-1px);
   filter: brightness(1.15);
-  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.4);
+  box-shadow: 0 2px 10px rgba(244, 114, 182, 0.4);
 }
 
 .bar-send-btn:disabled {
@@ -1079,7 +1102,7 @@ input[type="range"] {
 }
 
 .save-pref-btn {
-  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+  background: linear-gradient(135deg, var(--accent-pink), var(--accent-indigo));
   color: #fff;
   border: none;
   padding: 6px 14px;

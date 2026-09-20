@@ -276,7 +276,7 @@
      -------------------------------------------------------------------------- */
 
   function setupEvents() {
-    // 3D Mascot Click Handlers (FIXED: Reliable click execution)
+    // Mascot Click Handlers (Reliable, instantaneous execution)
     mascotFigureBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       wakeToExpanded();
@@ -295,6 +295,15 @@
     mascotStage.addEventListener('dblclick', (e) => {
       e.stopPropagation();
       wakeToExpanded();
+    });
+
+    // Dynamic Hover Reactions that bring Koko to life!
+    mascotFigureBtn.addEventListener('mouseenter', () => {
+      mascotSpeechText.textContent = "I'm ready! What's confusing you? ✏️";
+    });
+
+    mascotFigureBtn.addEventListener('mouseleave', () => {
+      mascotSpeechText.textContent = "Watching lecture with you... ☕";
     });
 
     // Morph button in header

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Koko — 3D Floating Study Companion</title>
+  <title>Koko — Alive Study Companion</title>
   <link rel="stylesheet" href="vendor/katex.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -11,27 +11,28 @@
   <div id="hud-container" class="hud-container expanded-view">
 
     <!-- ===================================================================
-         1. 3D ANIME COMPANION MASCOT STAGE (Idle Floating Desk Pet)
+         1. ALIVE ANIME COMPANION MASCOT STAGE (Interactive Study Companion)
          =================================================================== -->
     <div id="mascot-stage" class="mascot-stage">
-      <!-- Mini drag bar at top so user can move her around screen -->
+      <!-- Top drag pill so user can move her around screen -->
       <div class="mascot-drag-bar" title="Drag to move on screen">
         <span class="drag-grip-dots">•••</span>
       </div>
 
-      <!-- Speech Bubble -->
-      <div class="mascot-bubble" id="mascot-bubble" title="Click to ask Koko!">
-        <span id="mascot-speech-text">Watching lecture... 🎧</span>
+      <!-- Lively Speech Bubble -->
+      <div class="mascot-bubble" id="mascot-bubble" title="Click to open study HUD!">
+        <span id="mascot-speech-text">Watching lecture with you... ☕</span>
       </div>
 
-      <!-- 3D Figure (Clickable, no-drag) -->
-      <div class="mascot-chibi-wrapper" id="mascot-figure-btn" title="Click or press Alt+Space to ask Koko!">
-        <div class="mascot-glow-ring"></div>
-        <img src="assets/companion_3d_full.png" alt="Koko 3D anime study companion" class="mascot-3d-img">
+      <!-- Alive Figure Wrapper (Swaps to active state on hover/wake) -->
+      <div class="mascot-figure-wrapper" id="mascot-figure-btn" title="Click or press Alt+Space to ask Koko!">
+        <div class="mascot-ambient-glow"></div>
+        <img src="assets/companion_alive_idle.png" alt="Koko relaxed study" class="companion-state-img state-idle" id="img-mascot-idle">
+        <img src="assets/companion_alive_active.png" alt="Koko active study" class="companion-state-img state-active" id="img-mascot-active">
       </div>
 
-      <!-- Click to open prompt pill -->
-      <button type="button" class="mascot-wake-pill" id="btn-mascot-wake" title="Click to open study HUD">
+      <!-- Quick Wake Prompt Pill -->
+      <button type="button" class="mascot-wake-pill" id="btn-mascot-wake" title="Click to ask a doubt">
         <span>✨ Click to Ask</span>
       </button>
     </div>
@@ -46,15 +47,15 @@
         <div class="header-left">
           <div class="companion-profile">
             <div class="avatar-ring">
-              <img src="assets/companion_3d_avatar.png" alt="Koko 3D avatar" class="companion-avatar-img">
+              <img src="assets/companion_alive_avatar.png" alt="Koko avatar" class="companion-avatar-img">
               <span class="online-sparkle"></span>
             </div>
             <div class="companion-meta">
               <div class="name-row">
                 <span class="companion-name">Koko</span>
-                <span class="companion-tag">3D Companion</span>
+                <span class="companion-tag">Study Buddy</span>
               </div>
-              <span class="companion-status" id="companion-status">Listening along 🎧</span>
+              <span class="companion-status" id="companion-status">Studying with you ☕</span>
             </div>
           </div>
         </div>
@@ -106,8 +107,8 @@
             </svg>
           </button>
 
-          <!-- Morph into 3D Mascot button -->
-          <button id="btn-to-mascot" class="action-btn" title="Shrink into 3D floating mascot">
+          <!-- Morph into Mascot button -->
+          <button id="btn-to-mascot" class="action-btn" title="Shrink into floating anime companion">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
             </svg>
@@ -144,14 +145,14 @@
         <!-- Friendly Human Welcome Card -->
         <div class="cozy-welcome-card" id="welcome-card">
           <div class="welcome-mascot-pic">
-            <img src="assets/companion_3d_avatar.png" alt="Koko 3D study companion">
+            <img src="assets/companion_alive_avatar.png" alt="Koko study companion">
           </div>
           <div class="welcome-words">
             <h4>"Hey! What are we studying today?"</h4>
             <p>Whenever the professor says something confusing or writes a tough equation, paste a screenshot (<kbd>Cmd+V</kbd> / <kbd>Ctrl+V</kbd>) or ask me. I'll break it down without the textbook fluff!</p>
           </div>
           <div class="welcome-tags">
-            <span>✨ Idle = morphs into 3D companion</span>
+            <span>✨ Idle = morphs into cute companion</span>
             <span>💧 Adjustable transparency</span>
             <span>📸 Paste screenshots directly</span>
           </div>
@@ -261,19 +262,19 @@
 
           <div class="pref-box">
             <div class="pref-row">
-              <label for="slider-mascot-transparency">3D Figure Transparency: <span id="val-mascot-transparency">95%</span></label>
+              <label for="slider-mascot-transparency">Companion Transparency: <span id="val-mascot-transparency">95%</span></label>
             </div>
             <input type="range" id="slider-mascot-transparency" min="20" max="100" value="95" step="5">
-            <p class="pref-note">Adjust how transparent the floating 3D companion is while idle.</p>
+            <p class="pref-note">Adjust how transparent the floating companion is while idle.</p>
           </div>
 
           <!-- 3D Mascot Idle Controls -->
           <div class="pref-box">
             <div class="pref-row">
-              <label for="toggle-mascot-idle">Morph to 3D Figure When Idle</label>
+              <label for="toggle-mascot-idle">Morph to Companion When Idle</label>
               <input type="checkbox" id="toggle-mascot-idle" checked>
             </div>
-            <p class="pref-note">When you watch your lecture, Koko automatically converts into the 3D floating study companion in the corner.</p>
+            <p class="pref-note">When you watch your lecture, Koko automatically converts into the floating study companion in the corner.</p>
           </div>
 
           <div class="pref-box">
