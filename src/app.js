@@ -1,6 +1,10 @@
 /**
- * GhostHUD AI — Core Application Logic
- * Supports: Electron Desktop (Mac & Win), Web App (Chrome & Brave), Extension (V3)
+ * Koko — Human-Crafted Anime Study Companion
+ * Features:
+ * - Idle Cute Floating Anime Mascot Mode (100% unobtrusive on laptop screens)
+ * - Secure Gemini API Proxy (Keys hidden & protected in backend)
+ * - Screenshot Doubt Solving (Cmd+V / Ctrl+V)
+ * - KaTeX Math & Markdown Parsing
  */
 
 (function () {
@@ -8,11 +12,11 @@
 
   // DOM Elements
   const container = document.getElementById('hud-container');
-  const capsule = document.getElementById('hud-capsule');
+  const mascotStage = document.getElementById('mascot-stage');
+  const mascotBubble = document.getElementById('mascot-bubble');
+  const mascotSpeechText = document.getElementById('mascot-speech-text');
   const windowEl = document.getElementById('hud-window');
-  const headerEl = document.getElementById('hud-header');
-  const ghostIndicator = document.getElementById('ghost-indicator');
-  const messagesContainer = document.getElementById('messages-container');
+  const chatFeed = document.getElementById('chat-feed');
   const welcomeCard = document.getElementById('welcome-card');
   const chatForm = document.getElementById('chat-form');
   const promptInput = document.getElementById('prompt-input');
@@ -20,70 +24,96 @@
   const btnAttach = document.getElementById('btn-attach');
   const fileInput = document.getElementById('file-input');
   const btnMic = document.getElementById('btn-mic');
-  const imagePreviewBar = document.getElementById('image-preview-bar');
-  const previewImage = document.getElementById('preview-image');
-  const btnRemoveImage = document.getElementById('btn-remove-image');
-  const quickPills = document.getElementById('quick-pills');
+  const attachPreviewBar = document.getElementById('attach-preview-bar');
+  const previewThumbImg = document.getElementById('preview-thumb-img');
+  const btnClearThumb = document.getElementById('btn-clear-thumb');
+  const quickChips = document.getElementById('quick-chips');
 
-  // Header Buttons
+  // Header Actions
+  const btnToMascot = document.getElementById('btn-to-mascot');
   const btnPin = document.getElementById('btn-pin');
-  const btnMinimize = document.getElementById('btn-minimize');
+  const btnSettings = document.getElementById('btn-settings');
   const btnClose = document.getElementById('btn-close');
   const btnPip = document.getElementById('btn-pip');
-  const btnSettings = document.getElementById('btn-settings');
 
   // Settings Elements
   const settingsModal = document.getElementById('settings-modal');
   const btnCloseSettings = document.getElementById('btn-close-settings');
   const btnSaveSettings = document.getElementById('btn-save-settings');
   const inputApiKey = document.getElementById('input-api-key');
-  const btnToggleKey = document.getElementById('btn-toggle-key-visibility');
+  const btnToggleKeyEye = document.getElementById('btn-toggle-key-eye');
   const selectModel = document.getElementById('select-model');
-  const toggleGhostEnabled = document.getElementById('toggle-ghost-enabled');
+  const toggleMascotIdle = document.getElementById('toggle-mascot-idle');
+  const sliderMascotDelay = document.getElementById('slider-mascot-delay');
+  const valMascotDelay = document.getElementById('val-mascot-delay');
   const sliderGhostOpacity = document.getElementById('slider-ghost-opacity');
   const valGhostOpacity = document.getElementById('val-ghost-opacity');
-  const sliderGhostDelay = document.getElementById('slider-ghost-delay');
-  const valGhostDelay = document.getElementById('val-ghost-delay');
-  const btnClearHistory = document.getElementById('btn-clear-history');
+  const btnClearChat = document.getElementById('btn-clear-chat');
 
-  // Configuration State (stored in localStorage)
-  const STORAGE_KEY = 'ghosthud_config_v1';
+  // State
+  const STORAGE_KEY = 'koko_companion_v2';
   let config = {
-    apiKey: '',
     model: 'gemini-2.5-flash',
-    ghostEnabled: true,
-    ghostOpacity: 20, // percentage
-    ghostDelay: 4,    // seconds
+    mascotIdleEnabled: true,
+    mascotDelay: 4,      // seconds before curling into anime mascot
+    mascotOpacity: 85,   // opacity percentage
     alwaysOnTop: true,
     messages: []
   };
 
-  // Runtime State
-  let currentAttachedImage = null; // { mimeType, base64 }
-  let ghostTimer = null;
-  let isGhosted = false;
-  let isGenerating = false;
-  let isListening = false;
-  let speechRecognition = null;
+  let currentAttachedImage = null; // { mimeType, base64, previewUrl }
+  let idleTimer = null;
+  let isMascotMode = false;
+  let isThinking = false;
+  let speechRec = null;
 
-  // Detect platform runtime environment
   const isElectron = !!(window.ghostHUD && window.ghostHUD.isElectron);
 
-  // Initialize
+  // Mascot playful thoughts when idle
+  const cuteThoughts = [
+    "Watching lecture... 🎧",
+    "Got a tough question? Click me! ✨",
+    "Need this formula deconstructed? 📐",
+    "Paste a screenshot with Cmd+V! 📸",
+    "Taking notes alongside you ✏️",
+    "Listening intently... 🍵"
+  ];
+
   init();
 
-  function init() {
+  async function init() {
     loadConfig();
-    setupEventListeners();
-    setupGhostMode();
-    setupSpeechRecognition();
-    setupMarkdownAndMath();
-    renderHistory();
-    applyElectronPlatformStyles();
+    setupEvents();
+    setupMascotIdleTimer();
+    setupSpeech();
+    setupMarkdownMath();
+    renderChatHistory();
+
+    // Check if secure backend has API key
+    if (isElectron && window.ghostHUD.hasApiKey) {
+      const hasKey = await window.ghostHUD.hasApiKey();
+      if (hasKey) {
+        inputApiKey.placeholder = '•••••••••••••••• (Key safely configured)';
+      }
+    }
+
+    // Listen for IPC mode changes or global wakeups from Electron
+    if (isElectron) {
+      if (window.ghostHUD.onModeChanged) {
+        window.ghostHUD.onModeChanged((mode) => {
+          if (mode === 'mascot') enterMascotMode(false);
+          else wakeToExpanded(false);
+        });
+      }
+      if (window.ghostHUD.onWokenUp) {
+        window.ghostHUD.onWokenUp(() => wakeToExpanded(true));
+      }
+      if (btnPip) btnPip.style.display = 'none'; // Native window already always on top
+    }
   }
 
   /* --------------------------------------------------------------------------
-     Configuration Persistence
+     Config & Preferences
      -------------------------------------------------------------------------- */
 
   function loadConfig() {
@@ -92,218 +122,186 @@
       if (saved) {
         config = { ...config, ...JSON.parse(saved) };
       }
-    } catch (e) {
-      console.warn('Could not load config from localStorage', e);
-    }
+    } catch (e) {}
 
-    // Apply values to UI
-    inputApiKey.value = config.apiKey || '';
     selectModel.value = config.model || 'gemini-2.5-flash';
-    toggleGhostEnabled.checked = config.ghostEnabled !== false;
-    sliderGhostOpacity.value = config.ghostOpacity || 20;
+    toggleMascotIdle.checked = config.mascotIdleEnabled !== false;
+    sliderMascotDelay.value = config.mascotDelay || 4;
+    valMascotDelay.textContent = `${sliderMascotDelay.value}s`;
+    sliderGhostOpacity.value = config.mascotOpacity || 85;
     valGhostOpacity.textContent = `${sliderGhostOpacity.value}%`;
-    sliderGhostDelay.value = config.ghostDelay || 4;
-    valGhostDelay.textContent = `${sliderGhostDelay.value}s`;
 
-    applyGhostOpacityCSS(config.ghostOpacity);
+    applyMascotOpacity(config.mascotOpacity);
   }
 
-  function saveConfig() {
-    config.apiKey = inputApiKey.value.trim();
+  async function saveConfig() {
     config.model = selectModel.value;
-    config.ghostEnabled = toggleGhostEnabled.checked;
-    config.ghostOpacity = parseInt(sliderGhostOpacity.value, 10);
-    config.ghostDelay = parseInt(sliderGhostDelay.value, 10);
+    config.mascotIdleEnabled = toggleMascotIdle.checked;
+    config.mascotDelay = parseInt(sliderMascotDelay.value, 10);
+    config.mascotOpacity = parseInt(sliderGhostOpacity.value, 10);
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    applyGhostOpacityCSS(config.ghostOpacity);
-    settingsModal.style.display = 'none';
-
-    updateGhostIndicator();
-  }
-
-  function applyGhostOpacityCSS(opacityPercent) {
-    const dec = Math.max(0.05, Math.min(0.8, opacityPercent / 100));
-    document.documentElement.style.setProperty('--ghost-opacity', dec.toString());
-  }
-
-  function updateGhostIndicator() {
-    if (!config.ghostEnabled) {
-      ghostIndicator.style.display = 'none';
-    } else {
-      ghostIndicator.style.display = 'flex';
-      if (isGhosted) {
-        ghostIndicator.classList.add('ghosting');
-        ghostIndicator.querySelector('.ghost-text').textContent = 'Ghosting';
+    const enteredKey = inputApiKey.value.trim();
+    if (enteredKey) {
+      if (isElectron && window.ghostHUD.saveApiKey) {
+        // Securely saved to local .env and encrypted store in main process
+        await window.ghostHUD.saveApiKey(enteredKey);
+        inputApiKey.value = '';
+        inputApiKey.placeholder = '•••••••••••••••• (Key safely updated)';
       } else {
-        ghostIndicator.classList.remove('ghosting');
-        ghostIndicator.querySelector('.ghost-text').textContent = 'Ghost ON';
+        localStorage.setItem('koko_web_key', enteredKey);
       }
     }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    applyMascotOpacity(config.mascotOpacity);
+    settingsModal.style.display = 'none';
+    resetIdleTimer();
+  }
+
+  function applyMascotOpacity(percent) {
+    const val = Math.max(0.3, Math.min(1.0, percent / 100));
+    document.documentElement.style.setProperty('--mascot-opacity', val.toString());
   }
 
   /* --------------------------------------------------------------------------
-     Auto-Ghost Translucency Engine
+     Mascot Mode & Idle Invisibility Transitions
      -------------------------------------------------------------------------- */
 
-  function setupGhostMode() {
-    const wakeUpEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'focus'];
+  function setupMascotIdleTimer() {
+    const userActions = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'focus'];
 
-    wakeUpEvents.forEach(evt => {
-      window.addEventListener(evt, wakeFromGhost, { passive: true });
+    userActions.forEach(act => {
+      window.addEventListener(act, () => {
+        if (!isMascotMode) resetIdleTimer();
+      }, { passive: true });
     });
 
     window.addEventListener('blur', () => {
-      if (!isGenerating && !settingsModal.style.display.includes('flex')) {
-        scheduleGhost(1500); // fade faster when window loses focus
+      if (!isThinking && settingsModal.style.display !== 'flex') {
+        // Accelerate morph to mascot when user clicks back to their lecture video
+        resetIdleTimer(1200);
       }
     });
 
-    scheduleGhost();
+    resetIdleTimer();
   }
 
-  function scheduleGhost(customDelayMs) {
-    if (!config.ghostEnabled) return;
-    clearTimeout(ghostTimer);
+  function resetIdleTimer(customDelayMs) {
+    if (!config.mascotIdleEnabled) return;
+    clearTimeout(idleTimer);
 
-    const delay = customDelayMs !== undefined ? customDelayMs : config.ghostDelay * 1000;
-    ghostTimer = setTimeout(enterGhostMode, delay);
+    const delay = customDelayMs !== undefined ? customDelayMs : config.mascotDelay * 1000;
+    idleTimer = setTimeout(enterMascotMode, delay);
   }
 
-  function enterGhostMode() {
-    if (!config.ghostEnabled || isGenerating) return;
-    // Don't ghost if settings modal is open or user is actively typing
-    if (settingsModal.style.display === 'flex' || document.activeElement === promptInput && promptInput.value.length > 0) {
+  function enterMascotMode(notifyElectron = true) {
+    if (!config.mascotIdleEnabled || isThinking) return;
+    // Don't shrink if settings is open or user is in the middle of typing
+    if (settingsModal.style.display === 'flex' || (document.activeElement === promptInput && promptInput.value.length > 0)) {
       return;
     }
 
-    isGhosted = true;
-    container.classList.add('is-ghost');
-    updateGhostIndicator();
+    isMascotMode = true;
+    container.classList.remove('expanded-view');
+    container.classList.add('mascot-view');
 
-    if (isElectron && window.ghostHUD.setOpacity) {
-      window.ghostHUD.setOpacity(config.ghostOpacity / 100);
+    // Pick a playful thought
+    const thought = cuteThoughts[Math.floor(Math.random() * cuteThoughts.length)];
+    mascotSpeechText.textContent = thought;
+
+    if (isElectron && notifyElectron && window.ghostHUD.setMascotMode) {
+      window.ghostHUD.setMascotMode(true);
     }
   }
 
-  function wakeFromGhost() {
-    if (isGhosted) {
-      isGhosted = false;
-      container.classList.remove('is-ghost');
-      updateGhostIndicator();
+  function wakeToExpanded(notifyElectron = true) {
+    isMascotMode = false;
+    container.classList.remove('mascot-view');
+    container.classList.add('expanded-view');
 
-      if (isElectron && window.ghostHUD.setOpacity) {
-        window.ghostHUD.setOpacity(1.0);
-      }
+    if (isElectron && notifyElectron && window.ghostHUD.setMascotMode) {
+      window.ghostHUD.setMascotMode(false);
     }
-    scheduleGhost();
+
+    resetIdleTimer();
   }
 
   /* --------------------------------------------------------------------------
-     Clipboard & Image Handling (Screenshots via Cmd+V / Ctrl+V)
+     Event Listeners (Clipboard Screenshot Paste & Interactions)
      -------------------------------------------------------------------------- */
 
-  function setupEventListeners() {
-    // Paste handler for screenshots
-    window.addEventListener('paste', handlePaste);
-
-    // Drag and Drop for images
-    windowEl.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      windowEl.classList.add('drag-over');
+  function setupEvents() {
+    // Paste screenshot handler (Cmd+V / Ctrl+V)
+    window.addEventListener('paste', (e) => {
+      const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const blob = items[i].getAsFile();
+          handleImageBlob(blob);
+          if (isMascotMode) wakeToExpanded();
+          break;
+        }
+      }
     });
 
-    windowEl.addEventListener('dragleave', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      windowEl.classList.remove('drag-over');
-    });
-
+    // Drag and drop image
+    windowEl.addEventListener('dragover', (e) => e.preventDefault());
     windowEl.addEventListener('drop', (e) => {
       e.preventDefault();
-      e.stopPropagation();
-      windowEl.classList.remove('drag-over');
-      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        handleImageFile(e.dataTransfer.files[0]);
+      if (e.dataTransfer.files?.length > 0) {
+        handleImageBlob(e.dataTransfer.files[0]);
       }
     });
 
-    // File input attach button
+    // File input attach
     btnAttach.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => {
-      if (e.target.files && e.target.files.length > 0) {
-        handleImageFile(e.target.files[0]);
-      }
+      if (e.target.files?.length > 0) handleImageBlob(e.target.files[0]);
     });
 
-    // Remove attached image
-    btnRemoveImage.addEventListener('click', clearAttachedImage);
+    btnClearThumb.addEventListener('click', clearAttachedImage);
 
-    // Form submit
-    chatForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      sendUserQuery();
-    });
+    // Mascot click to wake
+    mascotStage.addEventListener('click', () => wakeToExpanded());
 
-    // Textarea enter key submit (Shift+Enter for newline)
-    promptInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendUserQuery();
-      }
-    });
+    // Morph button in header
+    btnToMascot.addEventListener('click', () => enterMascotMode());
 
-    // Quick Lecture Action Pills
-    quickPills.addEventListener('click', (e) => {
-      const btn = e.target.closest('.pill-chip');
-      if (!btn) return;
-      const promptText = btn.getAttribute('data-prompt');
-      if (currentAttachedImage) {
-        sendUserQuery(promptText);
-      } else {
-        promptInput.value = promptText;
-        promptInput.focus();
-      }
-    });
-
-    // Settings Modal
+    // Settings
     btnSettings.addEventListener('click', () => {
       settingsModal.style.display = 'flex';
-      wakeFromGhost();
+      clearTimeout(idleTimer);
     });
     btnCloseSettings.addEventListener('click', () => {
       settingsModal.style.display = 'none';
-      scheduleGhost();
+      resetIdleTimer();
     });
     btnSaveSettings.addEventListener('click', saveConfig);
 
-    btnToggleKey.addEventListener('click', () => {
+    btnToggleKeyEye.addEventListener('click', () => {
       inputApiKey.type = inputApiKey.type === 'password' ? 'text' : 'password';
+    });
+
+    sliderMascotDelay.addEventListener('input', (e) => {
+      valMascotDelay.textContent = `${e.target.value}s`;
     });
 
     sliderGhostOpacity.addEventListener('input', (e) => {
       valGhostOpacity.textContent = `${e.target.value}%`;
-      applyGhostOpacityCSS(e.target.value);
+      applyMascotOpacity(e.target.value);
     });
 
-    sliderGhostDelay.addEventListener('input', (e) => {
-      valGhostDelay.textContent = `${e.target.value}s`;
-    });
-
-    btnClearHistory.addEventListener('click', () => {
-      if (confirm('Clear all conversation messages?')) {
+    btnClearChat.addEventListener('click', () => {
+      if (confirm('Clear chat history with Koko?')) {
         config.messages = [];
         localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-        renderHistory();
+        renderChatHistory();
         settingsModal.style.display = 'none';
       }
     });
 
-    // Window controls
-    btnMinimize.addEventListener('click', toggleMiniCapsule);
-    capsule.addEventListener('click', toggleMiniCapsule);
-
+    // Pin
     if (btnPin) {
       btnPin.addEventListener('click', () => {
         config.alwaysOnTop = !config.alwaysOnTop;
@@ -314,60 +312,71 @@
       });
     }
 
+    // Close / Hide
     if (btnClose) {
       btnClose.addEventListener('click', () => {
         if (isElectron && window.ghostHUD.hide) {
           window.ghostHUD.hide();
         } else {
-          // In web mode, collapse to mini capsule
-          toggleMiniCapsule();
+          enterMascotMode();
         }
       });
     }
 
-    // Document Picture-in-Picture trigger (for Chrome / Brave)
+    // PiP for Chrome/Brave
     if (btnPip) {
       if ('documentPictureInPicture' in window) {
         btnPip.addEventListener('click', () => {
-          if (window.ghostHUD_PiP) {
-            window.ghostHUD_PiP.requestPiP();
-          }
+          if (window.ghostHUD_PiP) window.ghostHUD_PiP.requestPiP();
         });
       } else {
-        // PiP not available in non-Chromium browsers or already in PiP window
         btnPip.style.display = 'none';
       }
     }
-  }
 
-  function handlePaste(e) {
-    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.indexOf('image') !== -1) {
-        const blob = items[i].getAsFile();
-        handleImageFile(blob);
-        wakeFromGhost();
-        break;
+    // Natural Human Quick-Chips
+    quickChips.addEventListener('click', (e) => {
+      const btn = e.target.closest('.chip-item');
+      if (!btn) return;
+      const promptText = btn.getAttribute('data-prompt');
+      if (currentAttachedImage) {
+        submitQuery(promptText);
+      } else {
+        promptInput.value = promptText;
+        promptInput.focus();
       }
-    }
+    });
+
+    // Form submit
+    chatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      submitQuery();
+    });
+
+    promptInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitQuery();
+      }
+    });
   }
 
-  function handleImageFile(file) {
+  function handleImageBlob(file) {
     if (!file || !file.type.startsWith('image/')) return;
 
     const reader = new FileReader();
     reader.onload = function (evt) {
       const dataUrl = evt.target.result;
-      const base64Data = dataUrl.split(',')[1];
+      const base64 = dataUrl.split(',')[1];
       currentAttachedImage = {
         mimeType: file.type,
-        base64: base64Data,
+        base64: base64,
         previewUrl: dataUrl
       };
 
-      previewImage.src = dataUrl;
-      imagePreviewBar.style.display = 'flex';
-      promptInput.placeholder = 'Ask anything about this screenshot/slide...';
+      previewThumbImg.src = dataUrl;
+      attachPreviewBar.style.display = 'flex';
+      promptInput.placeholder = 'Ask Koko anything about this slide or equation...';
       promptInput.focus();
     };
     reader.readAsDataURL(file);
@@ -375,388 +384,301 @@
 
   function clearAttachedImage() {
     currentAttachedImage = null;
-    imagePreviewBar.style.display = 'none';
-    previewImage.src = '';
+    attachPreviewBar.style.display = 'none';
+    previewThumbImg.src = '';
     fileInput.value = '';
     promptInput.placeholder = 'Ask a doubt or paste screenshot (Cmd+V)...';
   }
 
-  function toggleMiniCapsule() {
-    container.classList.toggle('is-minimized');
-    wakeFromGhost();
-  }
-
   /* --------------------------------------------------------------------------
-     Voice / Speech Recognition (Hands-Free Lecture Doubts)
+     Speech Recognition (Whisper Doubt)
      -------------------------------------------------------------------------- */
 
-  function setupSpeechRecognition() {
-    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRec) {
+  function setupSpeech() {
+    const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Speech) {
       btnMic.style.display = 'none';
       return;
     }
 
-    speechRecognition = new SpeechRec();
-    speechRecognition.continuous = false;
-    speechRecognition.interimResults = true;
-    speechRecognition.lang = 'en-US';
+    speechRec = new Speech();
+    speechRec.continuous = false;
+    speechRec.interimResults = true;
+    speechRec.lang = 'en-US';
 
-    speechRecognition.onstart = () => {
+    let isListening = false;
+
+    speechRec.onstart = () => {
       isListening = true;
       btnMic.classList.add('listening');
     };
 
-    speechRecognition.onresult = (event) => {
-      const transcript = Array.from(event.results)
-        .map(r => r[0].transcript)
-        .join('');
+    speechRec.onresult = (evt) => {
+      const transcript = Array.from(evt.results).map(r => r[0].transcript).join('');
       promptInput.value = transcript;
     };
 
-    speechRecognition.onerror = (event) => {
-      console.warn('Speech recognition error:', event.error);
-      stopListening();
-    };
-
-    speechRecognition.onend = () => {
-      stopListening();
-      if (promptInput.value.trim().length > 0) {
-        sendUserQuery();
-      }
+    speechRec.onerror = () => stopSpeech();
+    speechRec.onend = () => {
+      stopSpeech();
+      if (promptInput.value.trim().length > 0) submitQuery();
     };
 
     btnMic.addEventListener('click', () => {
-      if (isListening) {
-        speechRecognition.stop();
-      } else {
-        speechRecognition.start();
-      }
+      if (isListening) speechRec.stop();
+      else speechRec.start();
     });
-  }
 
-  function stopListening() {
-    isListening = false;
-    btnMic.classList.remove('listening');
+    function stopSpeech() {
+      isListening = false;
+      btnMic.classList.remove('listening');
+    }
   }
 
   /* --------------------------------------------------------------------------
-     Markdown & LaTeX Math Formatting Setup
+     Formatting (KaTeX Math & Markdown)
      -------------------------------------------------------------------------- */
 
-  function setupMarkdownAndMath() {
+  function setupMarkdownMath() {
     if (window.marked) {
-      window.marked.setOptions({
-        gfm: true,
-        breaks: true
-      });
+      window.marked.setOptions({ gfm: true, breaks: true });
     }
   }
 
-  function formatContent(text) {
-    if (!text) return '';
+  function renderFormatted(rawText) {
+    if (!rawText) return '';
+    let processed = rawText;
 
-    // Step 1: Render math formulas with KaTeX if present ($...$ and $$...$$)
-    let processed = text;
     if (window.katex) {
       // Display math: $$...$$
-      processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (match, formula) => {
+      processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (m, formula) => {
         try {
           return window.katex.renderToString(formula.trim(), { displayMode: true, throwOnError: false });
-        } catch (e) {
-          return match;
-        }
+        } catch (e) { return m; }
       });
 
       // Inline math: $...$
-      processed = processed.replace(/\$([^\$\n]+?)\$/g, (match, formula) => {
+      processed = processed.replace(/\$([^\$\n]+?)\$/g, (m, formula) => {
         try {
           return window.katex.renderToString(formula.trim(), { displayMode: false, throwOnError: false });
-        } catch (e) {
-          return match;
-        }
+        } catch (e) { return m; }
       });
     }
 
-    // Step 2: Markdown parsing
     if (window.marked) {
-      try {
-        return window.marked.parse(processed);
-      } catch (e) {
-        return escapeHtml(processed);
-      }
+      try { return window.marked.parse(processed); } catch (e) {}
     }
 
     return escapeHtml(processed);
   }
 
-  function escapeHtml(str) {
+  function escapeHtml(s) {
     const div = document.createElement('div');
-    div.textContent = str;
+    div.textContent = s;
     return div.innerHTML;
   }
 
   /* --------------------------------------------------------------------------
-     Chat & Gemini AI Engine
+     Ask Koko (Secure Gemini API & Chat Engine)
      -------------------------------------------------------------------------- */
 
-  async function sendUserQuery(overridePrompt) {
-    const query = (overridePrompt || promptInput.value).trim();
+  async function submitQuery(overridePrompt) {
+    const text = (overridePrompt || promptInput.value).trim();
     const attached = currentAttachedImage;
 
-    if (!query && !attached) return;
-    if (isGenerating) return;
+    if (!text && !attached) return;
+    if (isThinking) return;
 
-    // Clear input bar
     promptInput.value = '';
     clearAttachedImage();
     welcomeCard.style.display = 'none';
 
-    // Add user message to UI & history
+    // Append user message
     const userMsg = {
       role: 'user',
-      text: query || 'Explain this lecture screenshot:',
+      text: text || "Hey Koko, take a look at this slide:",
       image: attached ? attached.previewUrl : null,
       timestamp: Date.now()
     };
-    appendMessage(userMsg);
+    appendChatBubble(userMsg);
     config.messages.push(userMsg);
 
-    // Prepare assistant response placeholder
-    const assistantMsg = {
-      role: 'assistant',
-      text: '',
-      timestamp: Date.now()
-    };
-    const { bubbleEl, itemEl } = appendMessage(assistantMsg, true);
+    // Assistant thinking placeholder
+    const { itemEl, bubbleEl } = appendChatBubble({ role: 'assistant', text: '' }, true);
 
-    isGenerating = true;
+    isThinking = true;
     btnSend.disabled = true;
 
     try {
-      if (config.apiKey) {
-        await callGeminiApi(query, attached, bubbleEl, itemEl);
+      if (isElectron && window.ghostHUD.generateGemini) {
+        // SECURE DESKTOP IPC: Key is never seen or handled by frontend
+        const res = await window.ghostHUD.generateGemini({
+          promptText: text,
+          attachedImage: attached,
+          model: config.model || 'gemini-2.5-flash'
+        });
+
+        if (res.success) {
+          bubbleEl.innerHTML = renderFormatted(res.reply);
+          attachCopyBtn(itemEl, res.reply);
+          config.messages.push({ role: 'assistant', text: res.reply, timestamp: Date.now() });
+        } else if (res.isDemo || res.error === 'NO_API_KEY') {
+          await runSmartDemo(text, attached, bubbleEl, itemEl);
+        } else {
+          throw new Error(res.error || 'Could not get response');
+        }
       } else {
-        await callSmartDemoMode(query, attached, bubbleEl, itemEl);
+        // Web fallback (direct key or smart demo)
+        const webKey = localStorage.getItem('koko_web_key');
+        if (webKey) {
+          await runDirectWebGemini(webKey, text, attached, bubbleEl, itemEl);
+        } else {
+          await runSmartDemo(text, attached, bubbleEl, itemEl);
+        }
       }
     } catch (err) {
-      console.error('Gemini error:', err);
       bubbleEl.innerHTML = `
-        <div style="color: var(--accent-rose); font-weight: 500;">
-          ⚠️ ${escapeHtml(err.message || 'Error communicating with Gemini API')}
+        <div style="color: var(--accent-rose); font-weight: 600;">
+          ⚠️ ${escapeHtml(err.message || 'Something went wrong while connecting to Gemini!')}
         </div>
         <div style="margin-top: 6px; font-size: 11px; color: var(--text-dim);">
-          Check your API Key in Settings (⚙️). You can get a free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--accent-cyan);">Google AI Studio</a>.
+          Open Settings (⚙️) to verify your Gemini API key, or check your internet connection.
         </div>
       `;
     } finally {
-      isGenerating = false;
+      isThinking = false;
       btnSend.disabled = false;
-      scheduleGhost();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+      resetIdleTimer();
     }
   }
 
-  /**
-   * Official Gemini 1.5/2.5 Flash API Caller with Streaming / Instant response
-   */
-  async function callGeminiApi(promptText, attachedImage, bubbleEl, itemEl) {
-    const model = config.model || 'gemini-2.5-flash';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(config.apiKey)}`;
-
-    // System instruction tailored for quick lecture doubt clearing
-    const systemPrompt = "You are GhostHUD AI, an ultra-fast, concise floating lecture companion. The student is watching a class or reading notes. Deliver crystal-clear explanations. Format key formulas with LaTeX ($...$ and $$...$$). Keep responses concise, structured, and easy to read in 10 seconds. Bold crucial terms.";
-
-    const parts = [];
-
-    // Add image if attached
-    if (attachedImage && attachedImage.base64) {
-      parts.push({
-        inlineData: {
-          mimeType: attachedImage.mimeType || 'image/png',
-          data: attachedImage.base64
-        }
-      });
-    }
-
-    // Add text prompt
-    parts.push({
-      text: promptText || "Analyze this lecture slide/image. Summarize key concepts, equations, and main takeaways."
-    });
-
-    const body = {
-      systemInstruction: {
-        parts: [{ text: systemPrompt }]
-      },
-      contents: [
-        {
-          role: 'user',
-          parts: parts
-        }
-      ],
-      generationConfig: {
-        temperature: 0.4,
-        maxOutputTokens: 1000
-      }
-    };
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      const msg = errData?.error?.message || `API error ${response.status}: ${response.statusText}`;
-      throw new Error(msg);
-    }
-
-    const data = await response.json();
-    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
-
-    // Render formatted markdown + math
-    bubbleEl.innerHTML = formatContent(reply);
-    attachCopyAction(itemEl, reply);
-
-    // Save in history
-    config.messages.push({
-      role: 'assistant',
-      text: reply,
-      timestamp: Date.now()
-    });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-  }
-
-  /**
-   * Smart Demo Mode (Runs if the user hasn't entered an API key yet)
-   */
-  async function callSmartDemoMode(promptText, attachedImage, bubbleEl, itemEl) {
-    // Show typing simulation
-    await new Promise(r => setTimeout(r, 600));
-
+  async function runSmartDemo(promptText, attachedImage, bubbleEl, itemEl) {
+    await new Promise(r => setTimeout(r, 650));
     let reply = '';
     const q = (promptText || '').toLowerCase();
 
     if (attachedImage) {
-      reply = `**Screenshot Analyzed (Demo Mode)** 📸\n\n- **Slide Topic Detected:** Core Academic Concept\n- **Formula Reference:** $$\\nabla \\cdot \\mathbf{E} = \\frac{\\rho}{\\varepsilon_0}$$\n- **Key Takeaway:** The visual elements represent the fundamental principles being discussed in the lecture.\n\n> 💡 *To unlock real-time live vision reasoning with Gemini 2.5 Flash, add your free key in Settings (⚙️).*`;
-    } else if (q.includes('formula') || q.includes('math') || q.includes('equation')) {
-      reply = `**Mathematical Breakdown** 📐\n\nConsider the standard quadratic & calculus relations:\n\n$$f(x) = ax^2 + bx + c \\implies f'(x) = 2ax + b$$\n\n- **Variables:** $x$ represents the independent parameter.\n- **Derivative:** $f'(x)$ gives the instantaneous rate of change (slope) at any lecture timestamp.\n\n*Tip: Connect your free Gemini API key in Settings to solve any custom lecture problem!*`;
-    } else if (q.includes('bullet') || q.includes('summary')) {
-      reply = `**Quick Lecture Takeaways** 📝\n\n1. **Core Concept:** Primary definition discussed during this segment.\n2. **Practical Utility:** Why this mechanism or theory is used in practice.\n3. **Exam Focus:** Keep this relationship memorized for quick recall.`;
+      reply = `**Slide Breakdown** 📸\n\n- **Main Idea:** The core academic concept shown on this whiteboard/slide represents a foundational relationship.\n- **Equation Insight:** $$\\oint \\mathbf{B} \\cdot d\\mathbf{A} = 0$$\n- **Takeaway:** There are no isolated magnetic monopoles; field lines always form closed loops!\n\n> 💡 *To unlock live vision reasoning on any real lecture slide, paste your free Gemini API key in **Settings (⚙️)**!*`;
+    } else if (q.includes('math') || q.includes('formula') || q.includes('equation')) {
+      reply = `**Here's the math deconstructed** 📐\n\nConsider the fundamental rate equation:\n\n$$\\frac{df}{dx} = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}$$\n\n- **$f(x+h) - f(x)$:** The change in height (output).\n- **$h$:** The tiny step forward along the horizontal axis.\n- **Intuition:** It's literally just calculating speed: $\\text{Distance} / \\text{Time}$ squeezed into an infinitesimal moment!`;
+    } else if (q.includes('takeaway') || q.includes('summary')) {
+      reply = `**3 High-Yield Takeaways** ⚡\n\n1. **Core Definition:** The principle explains why the system remains stable under perturbations.\n2. **Common Trap:** Don't confuse instantaneous values with steady-state averages on exams!\n3. **Quick Shortcut:** Remember the proportionality relation: $y \\propto \\frac{1}{x^2}$.`;
     } else {
-      reply = `**Concept Clarification** ⚡\n\n* **Definition:** A direct, high-level mechanism designed for solving the exact doubt you encountered.\n* **Analogy:** Think of it like a pipeline or highway that directs flow without bottlenecking.\n\n> 🔑 **Pro-Tip:** GhostHUD is running in instant Demo Mode. Add your 100% free key from [Google AI Studio](https://aistudio.google.com/app/apikey) in **Settings (⚙️)** to ask ANY lecture doubt!`;
+      reply = `**In Plain English** 💬\n\nThink of this concept like water flowing through pipes of different widths:\n- When the pipe narrows, the water must speed up to get the same amount through ($A_1 v_1 = A_2 v_2$).\n- That's the exact same conservation law the professor is talking about right now!\n\n> 💡 *Koko is ready! You can connect your free API key from [Google AI Studio](https://aistudio.google.com/app/apikey) in **Settings (⚙️)**.*`;
     }
 
-    bubbleEl.innerHTML = formatContent(reply);
-    attachCopyAction(itemEl, reply);
-
-    config.messages.push({
-      role: 'assistant',
-      text: reply,
-      timestamp: Date.now()
-    });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    bubbleEl.innerHTML = renderFormatted(reply);
+    attachCopyBtn(itemEl, reply);
+    config.messages.push({ role: 'assistant', text: reply, timestamp: Date.now() });
   }
 
-  function appendMessage(msg, isPending = false) {
+  async function runDirectWebGemini(apiKey, text, attached, bubbleEl, itemEl) {
+    const model = config.model || 'gemini-2.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+    const parts = [];
+    if (attached && attached.base64) {
+      parts.push({ inlineData: { mimeType: attached.mimeType, data: attached.base64 } });
+    }
+    parts.push({ text: text || "Explain this lecture concept clearly and concisely." });
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: "You are Koko, a brilliant, friendly peer study buddy. Explain simply without corporate fluff. Use LaTeX for math ($...$ and $$...$$). Keep answers punchy." }]
+        },
+        contents: [{ role: 'user', parts }]
+      })
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData?.error?.message || `Error ${res.status}`);
+    }
+
+    const data = await res.json();
+    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No reply generated.";
+    bubbleEl.innerHTML = renderFormatted(reply);
+    attachCopyBtn(itemEl, reply);
+    config.messages.push({ role: 'assistant', text: reply, timestamp: Date.now() });
+  }
+
+  function appendChatBubble(msg, isPending = false) {
     const itemEl = document.createElement('div');
-    itemEl.className = `msg-item ${msg.role}`;
+    itemEl.className = `chat-msg-row ${msg.role}`;
 
     const bubbleEl = document.createElement('div');
-    bubbleEl.className = 'msg-bubble';
+    bubbleEl.className = 'bubble-content';
 
     if (isPending) {
       bubbleEl.innerHTML = `
-        <div class="typing-dots">
-          <span class="typing-dot"></span>
-          <span class="typing-dot"></span>
-          <span class="typing-dot"></span>
+        <div class="koko-thinking-dots">
+          <span class="koko-dot"></span>
+          <span class="koko-dot"></span>
+          <span class="koko-dot"></span>
         </div>
       `;
     } else {
-      // If user uploaded an image
       if (msg.image) {
         const img = document.createElement('img');
         img.src = msg.image;
-        img.className = 'msg-image-thumb';
-        img.alt = 'Attached screenshot';
+        img.className = 'msg-thumb-preview';
         bubbleEl.appendChild(img);
       }
 
-      const textContainer = document.createElement('div');
-      textContainer.innerHTML = msg.role === 'assistant' ? formatContent(msg.text) : escapeHtml(msg.text);
-      bubbleEl.appendChild(textContainer);
+      const txt = document.createElement('div');
+      txt.innerHTML = msg.role === 'assistant' ? renderFormatted(msg.text) : escapeHtml(msg.text);
+      bubbleEl.appendChild(txt);
     }
 
     itemEl.appendChild(bubbleEl);
-    messagesContainer.appendChild(itemEl);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    chatFeed.appendChild(itemEl);
+    chatFeed.scrollTop = chatFeed.scrollHeight;
 
     if (!isPending && msg.role === 'assistant') {
-      attachCopyAction(itemEl, msg.text);
+      attachCopyBtn(itemEl, msg.text);
     }
 
     return { itemEl, bubbleEl };
   }
 
-  function attachCopyAction(itemEl, textToCopy) {
-    const actionsEl = document.createElement('div');
-    actionsEl.className = 'msg-actions';
+  function attachCopyBtn(itemEl, text) {
+    const foot = document.createElement('div');
+    foot.className = 'msg-foot-bar';
 
-    const copyBtn = document.createElement('button');
-    copyBtn.className = 'msg-action-btn';
-    copyBtn.innerHTML = `
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    const btn = document.createElement('button');
+    btn.className = 'foot-action-btn';
+    btn.innerHTML = `
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
       </svg>
       <span>Copy</span>
     `;
 
-    copyBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText(textToCopy);
-      copyBtn.querySelector('span').textContent = 'Copied!';
-      setTimeout(() => {
-        copyBtn.querySelector('span').textContent = 'Copy';
-      }, 1500);
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(text);
+      btn.querySelector('span').textContent = 'Copied!';
+      setTimeout(() => { btn.querySelector('span').textContent = 'Copy'; }, 1500);
     });
 
-    actionsEl.appendChild(copyBtn);
-    itemEl.appendChild(actionsEl);
+    foot.appendChild(btn);
+    itemEl.appendChild(foot);
   }
 
-  function renderHistory() {
-    messagesContainer.innerHTML = '';
+  function renderChatHistory() {
+    chatFeed.innerHTML = '';
     if (!config.messages || config.messages.length === 0) {
-      messagesContainer.appendChild(welcomeCard);
+      chatFeed.appendChild(welcomeCard);
       welcomeCard.style.display = 'flex';
       return;
     }
     welcomeCard.style.display = 'none';
-
-    // Show recent messages
-    const recent = config.messages.slice(-25);
-    recent.forEach(msg => appendMessage(msg));
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-  }
-
-  /* --------------------------------------------------------------------------
-     Platform Tweaks (Electron vs Browser)
-     -------------------------------------------------------------------------- */
-
-  function applyElectronPlatformStyles() {
-    if (isElectron) {
-      document.body.classList.add('platform-electron');
-      // In electron desktop app, hide web PiP button because it's already a native floating window
-      if (btnPip) btnPip.style.display = 'none';
-    } else {
-      // In Web / Browser extension mode
-      document.body.classList.add('platform-web');
-      // Close button can hide or minimize
-      if (btnClose && !isElectron) {
-        btnClose.title = 'Minimize';
-      }
-    }
+    config.messages.slice(-30).forEach(m => appendChatBubble(m));
+    chatFeed.scrollTop = chatFeed.scrollHeight;
   }
 
 })();
