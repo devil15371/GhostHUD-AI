@@ -1,8 +1,9 @@
 /**
- * Koko — Human-Crafted Anime Study Companion
+ * Koko — 3D Floating Anime Study Companion
  * Features:
- * - Idle Cute Floating Anime Mascot Mode (100% unobtrusive on laptop screens)
- * - Secure Gemini API Proxy (Keys hidden & protected in backend)
+ * - Idle 3D Figure Floating Mascot (clickable, interactive, unobtrusive on laptops)
+ * - Live Transparency Controls (Quick Header Slider + Presets + Settings)
+ * - Secure Gemini API Proxy (Hidden in Electron backend, never exposed)
  * - Screenshot Doubt Solving (Cmd+V / Ctrl+V)
  * - KaTeX Math & Markdown Parsing
  */
@@ -13,8 +14,11 @@
   // DOM Elements
   const container = document.getElementById('hud-container');
   const mascotStage = document.getElementById('mascot-stage');
+  const mascotFigureBtn = document.getElementById('mascot-figure-btn');
   const mascotBubble = document.getElementById('mascot-bubble');
   const mascotSpeechText = document.getElementById('mascot-speech-text');
+  const btnMascotWake = document.getElementById('btn-mascot-wake');
+
   const windowEl = document.getElementById('hud-window');
   const chatFeed = document.getElementById('chat-feed');
   const welcomeCard = document.getElementById('welcome-card');
@@ -36,6 +40,12 @@
   const btnClose = document.getElementById('btn-close');
   const btnPip = document.getElementById('btn-pip');
 
+  // Quick Transparency Popover
+  const btnTransparencyQuick = document.getElementById('btn-transparency-quick');
+  const quickOpacityLabel = document.getElementById('quick-opacity-label');
+  const transparencyPopover = document.getElementById('transparency-popover');
+  const quickOpacitySlider = document.getElementById('quick-opacity-slider');
+
   // Settings Elements
   const settingsModal = document.getElementById('settings-modal');
   const btnCloseSettings = document.getElementById('btn-close-settings');
@@ -43,20 +53,23 @@
   const inputApiKey = document.getElementById('input-api-key');
   const btnToggleKeyEye = document.getElementById('btn-toggle-key-eye');
   const selectModel = document.getElementById('select-model');
+  const sliderWindowTransparency = document.getElementById('slider-window-transparency');
+  const valWindowTransparency = document.getElementById('val-window-transparency');
+  const sliderMascotTransparency = document.getElementById('slider-mascot-transparency');
+  const valMascotTransparency = document.getElementById('val-mascot-transparency');
   const toggleMascotIdle = document.getElementById('toggle-mascot-idle');
   const sliderMascotDelay = document.getElementById('slider-mascot-delay');
   const valMascotDelay = document.getElementById('val-mascot-delay');
-  const sliderGhostOpacity = document.getElementById('slider-ghost-opacity');
-  const valGhostOpacity = document.getElementById('val-ghost-opacity');
   const btnClearChat = document.getElementById('btn-clear-chat');
 
   // State
-  const STORAGE_KEY = 'koko_companion_v2';
+  const STORAGE_KEY = 'koko_companion_v3';
   let config = {
     model: 'gemini-2.5-flash',
+    windowOpacity: 90,     // Window transparency percentage
+    mascotOpacity: 95,     // 3D Mascot transparency percentage
     mascotIdleEnabled: true,
-    mascotDelay: 4,      // seconds before curling into anime mascot
-    mascotOpacity: 85,   // opacity percentage
+    mascotDelay: 4,        // seconds before morphing into 3D mascot
     alwaysOnTop: true,
     messages: []
   };
@@ -69,14 +82,14 @@
 
   const isElectron = !!(window.ghostHUD && window.ghostHUD.isElectron);
 
-  // Mascot playful thoughts when idle
-  const cuteThoughts = [
+  // Playful 3D companion thoughts when idle
+  const companionThoughts = [
     "Watching lecture... 🎧",
-    "Got a tough question? Click me! ✨",
+    "Got a question? Click me! ✨",
     "Need this formula deconstructed? 📐",
     "Paste a screenshot with Cmd+V! 📸",
-    "Taking notes alongside you ✏️",
-    "Listening intently... 🍵"
+    "I'm listening along with you 💻",
+    "Analyzing the lecture... 📊"
   ];
 
   init();
@@ -89,7 +102,7 @@
     setupMarkdownMath();
     renderChatHistory();
 
-    // Check if secure backend has API key
+    // Check if secure backend has API key configured
     if (isElectron && window.ghostHUD.hasApiKey) {
       const hasKey = await window.ghostHUD.hasApiKey();
       if (hasKey) {
@@ -97,7 +110,7 @@
       }
     }
 
-    // Listen for IPC mode changes or global wakeups from Electron
+    // Electron IPC event bridges
     if (isElectron) {
       if (window.ghostHUD.onModeChanged) {
         window.ghostHUD.onModeChanged((mode) => {
@@ -108,12 +121,12 @@
       if (window.ghostHUD.onWokenUp) {
         window.ghostHUD.onWokenUp(() => wakeToExpanded(true));
       }
-      if (btnPip) btnPip.style.display = 'none'; // Native window already always on top
+      if (btnPip) btnPip.style.display = 'none';
     }
   }
 
   /* --------------------------------------------------------------------------
-     Config & Preferences
+     Config & Transparency Engine
      -------------------------------------------------------------------------- */
 
   function loadConfig() {
@@ -128,22 +141,31 @@
     toggleMascotIdle.checked = config.mascotIdleEnabled !== false;
     sliderMascotDelay.value = config.mascotDelay || 4;
     valMascotDelay.textContent = `${sliderMascotDelay.value}s`;
-    sliderGhostOpacity.value = config.mascotOpacity || 85;
-    valGhostOpacity.textContent = `${sliderGhostOpacity.value}%`;
 
-    applyMascotOpacity(config.mascotOpacity);
+    const winOpacity = config.windowOpacity !== undefined ? config.windowOpacity : 90;
+    sliderWindowTransparency.value = winOpacity;
+    valWindowTransparency.textContent = `${winOpacity}%`;
+    quickOpacitySlider.value = winOpacity;
+    quickOpacityLabel.textContent = `${winOpacity}%`;
+
+    const mascotOp = config.mascotOpacity !== undefined ? config.mascotOpacity : 95;
+    sliderMascotTransparency.value = mascotOp;
+    valMascotTransparency.textContent = `${mascotOp}%`;
+
+    applyWindowTransparency(winOpacity);
+    applyMascotTransparency(mascotOp);
   }
 
   async function saveConfig() {
     config.model = selectModel.value;
     config.mascotIdleEnabled = toggleMascotIdle.checked;
     config.mascotDelay = parseInt(sliderMascotDelay.value, 10);
-    config.mascotOpacity = parseInt(sliderGhostOpacity.value, 10);
+    config.windowOpacity = parseInt(sliderWindowTransparency.value, 10);
+    config.mascotOpacity = parseInt(sliderMascotTransparency.value, 10);
 
     const enteredKey = inputApiKey.value.trim();
     if (enteredKey) {
       if (isElectron && window.ghostHUD.saveApiKey) {
-        // Securely saved to local .env and encrypted store in main process
         await window.ghostHUD.saveApiKey(enteredKey);
         inputApiKey.value = '';
         inputApiKey.placeholder = '•••••••••••••••• (Key safely updated)';
@@ -153,18 +175,38 @@
     }
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    applyMascotOpacity(config.mascotOpacity);
+    applyWindowTransparency(config.windowOpacity);
+    applyMascotTransparency(config.mascotOpacity);
     settingsModal.style.display = 'none';
     resetIdleTimer();
   }
 
-  function applyMascotOpacity(percent) {
-    const val = Math.max(0.3, Math.min(1.0, percent / 100));
-    document.documentElement.style.setProperty('--mascot-opacity', val.toString());
+  function applyWindowTransparency(percent) {
+    const dec = Math.max(0.15, Math.min(1.0, percent / 100));
+    document.documentElement.style.setProperty('--hud-window-opacity', dec.toString());
+    quickOpacityLabel.textContent = `${percent}%`;
+    valWindowTransparency.textContent = `${percent}%`;
+    quickOpacitySlider.value = percent;
+    sliderWindowTransparency.value = percent;
+
+    if (isElectron && window.ghostHUD.setOpacity && !isMascotMode) {
+      window.ghostHUD.setOpacity(dec);
+    }
+  }
+
+  function applyMascotTransparency(percent) {
+    const dec = Math.max(0.2, Math.min(1.0, percent / 100));
+    document.documentElement.style.setProperty('--mascot-opacity', dec.toString());
+    valMascotTransparency.textContent = `${percent}%`;
+    sliderMascotTransparency.value = percent;
+
+    if (isElectron && window.ghostHUD.setOpacity && isMascotMode) {
+      window.ghostHUD.setOpacity(dec);
+    }
   }
 
   /* --------------------------------------------------------------------------
-     Mascot Mode & Idle Invisibility Transitions
+     Mascot Mode & Idle Transitions
      -------------------------------------------------------------------------- */
 
   function setupMascotIdleTimer() {
@@ -178,8 +220,7 @@
 
     window.addEventListener('blur', () => {
       if (!isThinking && settingsModal.style.display !== 'flex') {
-        // Accelerate morph to mascot when user clicks back to their lecture video
-        resetIdleTimer(1200);
+        resetIdleTimer(1500); // Curl into 3D mascot faster when returning to lecture video
       }
     });
 
@@ -196,7 +237,6 @@
 
   function enterMascotMode(notifyElectron = true) {
     if (!config.mascotIdleEnabled || isThinking) return;
-    // Don't shrink if settings is open or user is in the middle of typing
     if (settingsModal.style.display === 'flex' || (document.activeElement === promptInput && promptInput.value.length > 0)) {
       return;
     }
@@ -204,10 +244,13 @@
     isMascotMode = true;
     container.classList.remove('expanded-view');
     container.classList.add('mascot-view');
+    transparencyPopover.style.display = 'none';
 
-    // Pick a playful thought
-    const thought = cuteThoughts[Math.floor(Math.random() * cuteThoughts.length)];
+    // Pick playful thought
+    const thought = companionThoughts[Math.floor(Math.random() * companionThoughts.length)];
     mascotSpeechText.textContent = thought;
+
+    applyMascotTransparency(config.mascotOpacity);
 
     if (isElectron && notifyElectron && window.ghostHUD.setMascotMode) {
       window.ghostHUD.setMascotMode(true);
@@ -219,6 +262,8 @@
     container.classList.remove('mascot-view');
     container.classList.add('expanded-view');
 
+    applyWindowTransparency(config.windowOpacity);
+
     if (isElectron && notifyElectron && window.ghostHUD.setMascotMode) {
       window.ghostHUD.setMascotMode(false);
     }
@@ -227,10 +272,104 @@
   }
 
   /* --------------------------------------------------------------------------
-     Event Listeners (Clipboard Screenshot Paste & Interactions)
+     Event Listeners & Click Handlers
      -------------------------------------------------------------------------- */
 
   function setupEvents() {
+    // 3D Mascot Click Handlers (FIXED: Reliable click execution)
+    mascotFigureBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      wakeToExpanded();
+    });
+
+    mascotBubble.addEventListener('click', (e) => {
+      e.stopPropagation();
+      wakeToExpanded();
+    });
+
+    btnMascotWake.addEventListener('click', (e) => {
+      e.stopPropagation();
+      wakeToExpanded();
+    });
+
+    mascotStage.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      wakeToExpanded();
+    });
+
+    // Morph button in header
+    btnToMascot.addEventListener('click', () => enterMascotMode());
+
+    // Quick Transparency Popover Toggle
+    btnTransparencyQuick.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isVisible = transparencyPopover.style.display === 'flex';
+      transparencyPopover.style.display = isVisible ? 'none' : 'flex';
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.transparency-control-wrap')) {
+        transparencyPopover.style.display = 'none';
+      }
+    });
+
+    // Quick Opacity Slider
+    quickOpacitySlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      config.windowOpacity = val;
+      applyWindowTransparency(val);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    });
+
+    // Quick Opacity Presets
+    transparencyPopover.addEventListener('click', (e) => {
+      const pill = e.target.closest('.preset-pill');
+      if (!pill) return;
+      const op = parseInt(pill.getAttribute('data-opacity'), 10);
+      config.windowOpacity = op;
+      applyWindowTransparency(op);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    });
+
+    // Settings Modal Sliders
+    sliderWindowTransparency.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      applyWindowTransparency(val);
+    });
+
+    sliderMascotTransparency.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      applyMascotTransparency(val);
+    });
+
+    sliderMascotDelay.addEventListener('input', (e) => {
+      valMascotDelay.textContent = `${e.target.value}s`;
+    });
+
+    // Settings Modal Open/Close
+    btnSettings.addEventListener('click', () => {
+      settingsModal.style.display = 'flex';
+      clearTimeout(idleTimer);
+    });
+    btnCloseSettings.addEventListener('click', () => {
+      settingsModal.style.display = 'none';
+      resetIdleTimer();
+    });
+    btnSaveSettings.addEventListener('click', saveConfig);
+
+    btnToggleKeyEye.addEventListener('click', () => {
+      inputApiKey.type = inputApiKey.type === 'password' ? 'text' : 'password';
+    });
+
+    btnClearChat.addEventListener('click', () => {
+      if (confirm('Clear chat history with Koko?')) {
+        config.messages = [];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+        renderChatHistory();
+        settingsModal.style.display = 'none';
+      }
+    });
+
     // Paste screenshot handler (Cmd+V / Ctrl+V)
     window.addEventListener('paste', (e) => {
       const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
@@ -261,45 +400,6 @@
     });
 
     btnClearThumb.addEventListener('click', clearAttachedImage);
-
-    // Mascot click to wake
-    mascotStage.addEventListener('click', () => wakeToExpanded());
-
-    // Morph button in header
-    btnToMascot.addEventListener('click', () => enterMascotMode());
-
-    // Settings
-    btnSettings.addEventListener('click', () => {
-      settingsModal.style.display = 'flex';
-      clearTimeout(idleTimer);
-    });
-    btnCloseSettings.addEventListener('click', () => {
-      settingsModal.style.display = 'none';
-      resetIdleTimer();
-    });
-    btnSaveSettings.addEventListener('click', saveConfig);
-
-    btnToggleKeyEye.addEventListener('click', () => {
-      inputApiKey.type = inputApiKey.type === 'password' ? 'text' : 'password';
-    });
-
-    sliderMascotDelay.addEventListener('input', (e) => {
-      valMascotDelay.textContent = `${e.target.value}s`;
-    });
-
-    sliderGhostOpacity.addEventListener('input', (e) => {
-      valGhostOpacity.textContent = `${e.target.value}%`;
-      applyMascotOpacity(e.target.value);
-    });
-
-    btnClearChat.addEventListener('click', () => {
-      if (confirm('Clear chat history with Koko?')) {
-        config.messages = [];
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-        renderChatHistory();
-        settingsModal.style.display = 'none';
-      }
-    });
 
     // Pin
     if (btnPin) {
@@ -496,7 +596,7 @@
     // Append user message
     const userMsg = {
       role: 'user',
-      text: text || "Hey Koko, take a look at this slide:",
+      text: text || "Hey Koko, check out this slide:",
       image: attached ? attached.previewUrl : null,
       timestamp: Date.now()
     };
@@ -542,7 +642,7 @@
           ⚠️ ${escapeHtml(err.message || 'Something went wrong while connecting to Gemini!')}
         </div>
         <div style="margin-top: 6px; font-size: 11px; color: var(--text-dim);">
-          Open Settings (⚙️) to verify your Gemini API key, or check your internet connection.
+          Open Settings (⚙️) to check your Gemini API key or network connection.
         </div>
       `;
     } finally {
@@ -559,13 +659,13 @@
     const q = (promptText || '').toLowerCase();
 
     if (attachedImage) {
-      reply = `**Slide Breakdown** 📸\n\n- **Main Idea:** The core academic concept shown on this whiteboard/slide represents a foundational relationship.\n- **Equation Insight:** $$\\oint \\mathbf{B} \\cdot d\\mathbf{A} = 0$$\n- **Takeaway:** There are no isolated magnetic monopoles; field lines always form closed loops!\n\n> 💡 *To unlock live vision reasoning on any real lecture slide, paste your free Gemini API key in **Settings (⚙️)**!*`;
+      reply = `**Slide Analysis** 📸\n\n- **Core Principle:** The equations represent energy conservation across boundaries.\n- **Equation:** $$\\oint \\mathbf{B} \\cdot d\\mathbf{A} = 0$$\n- **Key Takeaway:** Magnetic field lines are continuous closed loops with zero divergence.\n\n> 💡 *Paste your free Gemini API key in **Settings (⚙️)** to ask live doubts on any lecture!*`;
     } else if (q.includes('math') || q.includes('formula') || q.includes('equation')) {
-      reply = `**Here's the math deconstructed** 📐\n\nConsider the fundamental rate equation:\n\n$$\\frac{df}{dx} = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}$$\n\n- **$f(x+h) - f(x)$:** The change in height (output).\n- **$h$:** The tiny step forward along the horizontal axis.\n- **Intuition:** It's literally just calculating speed: $\\text{Distance} / \\text{Time}$ squeezed into an infinitesimal moment!`;
+      reply = `**Math Deconstruction** 📐\n\nHere is the underlying physical relationship:\n\n$$E = \\hbar \\omega = h \\nu$$\n\n- **$\\hbar$:** Reduced Planck constant ($h / 2\\pi$).\n- **$\\omega$:** Angular frequency of oscillation.\n- **Intuition:** Energy comes in discrete packets (quanta)—the higher the frequency, the more energetic each packet!`;
     } else if (q.includes('takeaway') || q.includes('summary')) {
-      reply = `**3 High-Yield Takeaways** ⚡\n\n1. **Core Definition:** The principle explains why the system remains stable under perturbations.\n2. **Common Trap:** Don't confuse instantaneous values with steady-state averages on exams!\n3. **Quick Shortcut:** Remember the proportionality relation: $y \\propto \\frac{1}{x^2}$.`;
+      reply = `**3 High-Yield Exam Takeaways** ⚡\n\n1. **Core Concept:** Primary mechanism governing the system's equilibrium.\n2. **Frequent Trap:** Watch out for negative signs in differential equations.\n3. **Quick Formula:** Remember the inverse-square relation: $F \\propto \\frac{1}{r^2}$.`;
     } else {
-      reply = `**In Plain English** 💬\n\nThink of this concept like water flowing through pipes of different widths:\n- When the pipe narrows, the water must speed up to get the same amount through ($A_1 v_1 = A_2 v_2$).\n- That's the exact same conservation law the professor is talking about right now!\n\n> 💡 *Koko is ready! You can connect your free API key from [Google AI Studio](https://aistudio.google.com/app/apikey) in **Settings (⚙️)**.*`;
+      reply = `**In Plain English** 💬\n\nThink of this concept like water flowing through pipes of different widths:\n- When the pipe narrows, the velocity increases ($A_1 v_1 = A_2 v_2$).\n- The professor is using the exact same conservation principle on this slide!\n\n> 💡 *To solve any live lecture problem, add your 100% free Gemini API key in **Settings (⚙️)**.*`;
     }
 
     bubbleEl.innerHTML = renderFormatted(reply);
@@ -588,7 +688,7 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         systemInstruction: {
-          parts: [{ text: "You are Koko, a brilliant, friendly peer study buddy. Explain simply without corporate fluff. Use LaTeX for math ($...$ and $$...$$). Keep answers punchy." }]
+          parts: [{ text: "You are Koko, a brilliant 3D study companion. Explain simply without corporate fluff. Use LaTeX for math ($...$ and $$...$$). Keep answers punchy." }]
         },
         contents: [{ role: 'user', parts }]
       })

@@ -1,12 +1,12 @@
 /* ==========================================================================
-   Koko — Human-Crafted Floating Anime Study Companion
+   Koko — 3D Floating Anime Study Companion
    Tailored for Mac & Windows Laptop Workflows
    ========================================================================== */
 
 :root {
   --bg-deep: #090c14;
-  --bg-window: rgba(13, 17, 27, 0.88);
-  --bg-header: rgba(17, 23, 37, 0.92);
+  --bg-window-base: rgba(13, 17, 27, 0.88);
+  --bg-header: rgba(17, 23, 37, 0.94);
   --bg-card: rgba(255, 255, 255, 0.04);
   --bg-card-hover: rgba(255, 255, 255, 0.08);
   --bg-input-box: rgba(8, 11, 19, 0.85);
@@ -29,7 +29,8 @@
   --text-dim: #94a3b8;
   --text-muted: #64748b;
 
-  --mascot-opacity: 0.92;
+  --hud-window-opacity: 0.90;
+  --mascot-opacity: 0.95;
   --radius-window: 18px;
   --radius-bubble: 14px;
   --radius-pill: 9999px;
@@ -65,10 +66,10 @@ body.koko-body {
   position: relative;
   display: flex;
   flex-direction: column;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.25s ease;
 }
 
-/* Mascot Mode vs Expanded Mode Visibility */
+/* Mascot View vs Expanded View Visibility */
 .hud-container.mascot-view .hud-window {
   display: none !important;
 }
@@ -86,7 +87,7 @@ body.koko-body {
 }
 
 /* ==========================================================================
-   1. IDLE ANIME MASCOT STAGE (Cute Floating Desk Pet)
+   1. 3D ANIME COMPANION MASCOT STAGE (Idle Desk Pet)
    ========================================================================== */
 
 .mascot-stage {
@@ -96,73 +97,117 @@ body.koko-body {
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  padding-bottom: 8px;
+  padding-bottom: 6px;
   position: relative;
-  cursor: pointer;
-  -webkit-app-region: drag; /* Can drag Koko anywhere on screen */
+  -webkit-app-region: no-drag !important; /* CRITICAL: Enables clicks! */
   opacity: var(--mascot-opacity);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
 }
 
 .mascot-stage:hover {
   opacity: 1 !important;
-  transform: scale(1.04);
 }
 
-.mascot-chibi-wrapper {
-  position: relative;
-  width: 95px;
-  height: 95px;
+/* Drag Handle Bar at Top of Mascot */
+.mascot-drag-bar {
+  position: absolute;
+  top: 2px;
+  width: 48px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-pill);
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: float-chibi 3.2s ease-in-out infinite;
+  cursor: grab;
+  -webkit-app-region: drag; /* Dedicated drag zone */
+  z-index: 20;
+}
+
+.mascot-drag-bar:active {
+  cursor: grabbing;
+}
+
+.drag-grip-dots {
+  font-size: 8px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+/* 3D Figure Wrapper */
+.mascot-chibi-wrapper {
+  position: relative;
+  width: 140px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer !important;
+  -webkit-app-region: no-drag !important;
+  animation: float-3d 3.6s ease-in-out infinite;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease;
+}
+
+.mascot-chibi-wrapper:hover {
+  transform: scale(1.05) translateY(-3px);
+  filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.5));
 }
 
 .mascot-glow-ring {
   position: absolute;
-  width: 85px;
-  height: 85px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(244, 114, 182, 0.25) 0%, rgba(99, 102, 241, 0.18) 50%, transparent 70%);
-  filter: blur(8px);
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.2) 0%, rgba(192, 132, 252, 0.15) 50%, transparent 70%);
+  filter: blur(10px);
   z-index: 1;
 }
 
-.mascot-chibi-img {
+.mascot-3d-img {
   width: 100%;
   height: 100%;
   object-fit: contain;
   position: relative;
   z-index: 2;
-  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.6));
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.8));
+  pointer-events: auto !important;
+  cursor: pointer !important;
 }
 
-@keyframes float-chibi {
+@keyframes float-3d {
   0%, 100% {
     transform: translateY(0px) rotate(0deg);
   }
   50% {
-    transform: translateY(-8px) rotate(1.5deg);
+    transform: translateY(-6px) rotate(1deg);
   }
 }
 
+/* Speech Bubble above 3D Figure */
 .mascot-bubble {
   position: absolute;
-  top: 6px;
-  background: rgba(13, 17, 27, 0.92);
-  border: 1px solid rgba(244, 114, 182, 0.35);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  padding: 4px 9px;
+  top: 18px;
+  background: rgba(13, 17, 27, 0.95);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 4px 10px;
   border-radius: var(--radius-pill);
   font-size: 10.5px;
   font-weight: 600;
   color: #fff;
   white-space: nowrap;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 10px rgba(244, 114, 182, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 0 12px rgba(56, 189, 248, 0.25);
   animation: bubble-pop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  pointer-events: none;
+  cursor: pointer !important;
+  -webkit-app-region: no-drag !important;
+  z-index: 15;
+}
+
+.mascot-bubble:hover {
+  border-color: var(--accent-pink);
+  transform: scale(1.04);
 }
 
 @keyframes bubble-pop {
@@ -170,28 +215,39 @@ body.koko-body {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.mascot-drag-hint {
-  margin-top: 2px;
-  font-size: 9px;
-  font-weight: 700;
-  color: var(--accent-pink);
-  background: rgba(244, 114, 182, 0.15);
-  border: 1px solid rgba(244, 114, 182, 0.3);
-  padding: 1px 7px;
+/* Wake button pill below 3D figure */
+.mascot-wake-pill {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(192, 132, 252, 0.25));
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  padding: 3px 10px;
   border-radius: var(--radius-pill);
-  letter-spacing: 0.3px;
+  font-size: 9.5px;
+  font-weight: 700;
+  cursor: pointer !important;
+  -webkit-app-region: no-drag !important;
+  transition: all 0.2s ease;
+  margin-top: -4px;
+  z-index: 10;
+}
+
+.mascot-wake-pill:hover {
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+  transform: scale(1.05);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
 }
 
 /* ==========================================================================
    2. FULL STUDY HUD WINDOW
-   ========================================================================== */
+   ========================================================================= */
 
 .hud-window {
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg-window);
+  background: rgba(13, 17, 27, var(--hud-window-opacity));
   backdrop-filter: blur(32px) saturate(200%);
   -webkit-backdrop-filter: blur(32px) saturate(200%);
   border: 1px solid var(--border-glass);
@@ -207,7 +263,7 @@ body.koko-body {
   to { opacity: 1; transform: scale(1); }
 }
 
-/* Header & Drag Bar */
+/* Header & Profile */
 .hud-header {
   height: 48px;
   min-height: 48px;
@@ -233,10 +289,10 @@ body.koko-body {
 
 .avatar-ring {
   position: relative;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
   padding: 1.5px;
   flex-shrink: 0;
 }
@@ -283,9 +339,9 @@ body.koko-body {
 .companion-tag {
   font-size: 9px;
   font-weight: 700;
-  background: rgba(244, 114, 182, 0.16);
-  border: 1px solid rgba(244, 114, 182, 0.35);
-  color: var(--accent-pink);
+  background: rgba(56, 189, 248, 0.16);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: var(--accent-cyan);
   padding: 0 5px;
   border-radius: 4px;
 }
@@ -306,12 +362,13 @@ body.koko-body {
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-dim);
-  width: 28px;
   height: 28px;
+  padding: 0 6px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -334,6 +391,79 @@ body.koko-body {
 }
 
 /* ==========================================================================
+   Quick Transparency Control Popover
+   ========================================================================== */
+
+.transparency-control-wrap {
+  position: relative;
+}
+
+.transparency-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.transparency-popover {
+  position: absolute;
+  top: 36px;
+  right: 0;
+  width: 170px;
+  background: rgba(15, 20, 32, 0.96);
+  border: 1px solid var(--border-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: pop-down 0.2s ease;
+}
+
+@keyframes pop-down {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.popover-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.transparency-popover input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent-cyan);
+}
+
+.opacity-presets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.preset-pill {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-soft);
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.preset-pill:hover {
+  background: rgba(56, 189, 248, 0.2);
+  color: #fff;
+  border-color: var(--accent-cyan);
+}
+
+/* ==========================================================================
    Natural Human Quick-Chips
    ========================================================================== */
 
@@ -343,7 +473,7 @@ body.koko-body {
   padding: 8px 12px;
   overflow-x: auto;
   scrollbar-width: none;
-  background: rgba(0, 0, 0, 0.18);
+  background: rgba(0, 0, 0, 0.2);
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
 }
@@ -396,11 +526,11 @@ body.koko-body {
   border-radius: 4px;
 }
 
-/* Cozy Human Welcome Card */
+/* Welcome Card */
 .cozy-welcome-card {
   padding: 16px;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(244, 114, 182, 0.04));
-  border: 1px dashed rgba(244, 114, 182, 0.25);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(56, 189, 248, 0.04));
+  border: 1px dashed rgba(56, 189, 248, 0.25);
   border-radius: 14px;
   text-align: center;
   display: flex;
@@ -411,10 +541,12 @@ body.koko-body {
 }
 
 .welcome-mascot-pic img {
-  width: 52px;
-  height: 52px;
-  object-fit: contain;
-  filter: drop-shadow(0 4px 12px rgba(244, 114, 182, 0.4));
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--accent-cyan);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
 }
 
 .welcome-words h4 {
@@ -456,7 +588,7 @@ body.koko-body {
   color: var(--text-dim);
 }
 
-/* Message Items */
+/* Chat Rows */
 .chat-msg-row {
   display: flex;
   flex-direction: column;
@@ -576,7 +708,7 @@ body.koko-body {
   color: var(--text-soft);
 }
 
-/* Typing animation */
+/* Thinking Indicator */
 .koko-thinking-dots {
   display: inline-flex;
   gap: 4px;
@@ -588,12 +720,12 @@ body.koko-body {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--accent-pink);
+  background: var(--accent-cyan);
   animation: koko-bounce 1.3s infinite ease-in-out;
 }
 
 .koko-dot:nth-child(2) { animation-delay: 0.2s; background: var(--accent-purple); }
-.koko-dot:nth-child(3) { animation-delay: 0.4s; background: var(--accent-cyan); }
+.koko-dot:nth-child(3) { animation-delay: 0.4s; background: var(--accent-pink); }
 
 @keyframes koko-bounce {
   0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
@@ -682,8 +814,8 @@ body.koko-body {
 }
 
 .human-input-box:focus-within {
-  border-color: var(--accent-indigo);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
 }
 
 .bar-icon-btn {
@@ -736,7 +868,7 @@ body.koko-body {
 }
 
 .bar-send-btn {
-  background: linear-gradient(135deg, var(--accent-pink), var(--accent-indigo));
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
   color: #fff;
   border: none;
   width: 28px;
@@ -753,7 +885,7 @@ body.koko-body {
 .bar-send-btn:hover {
   transform: translateY(-1px);
   filter: brightness(1.15);
-  box-shadow: 0 2px 10px rgba(244, 114, 182, 0.4);
+  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.4);
 }
 
 .bar-send-btn:disabled {
@@ -925,7 +1057,7 @@ select {
 
 input[type="range"] {
   width: 100%;
-  accent-color: var(--accent-pink);
+  accent-color: var(--accent-cyan);
 }
 
 .clear-chat-btn {
@@ -947,7 +1079,7 @@ input[type="range"] {
 }
 
 .save-pref-btn {
-  background: linear-gradient(135deg, var(--accent-pink), var(--accent-indigo));
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
   color: #fff;
   border: none;
   padding: 6px 14px;

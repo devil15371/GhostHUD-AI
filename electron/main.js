@@ -159,13 +159,14 @@ function setMascotMode(isMascot) {
     }
     currentMode = 'mascot';
 
-    // Shrink window into a cute mascot footprint
-    const mascotWidth = 130;
-    const mascotHeight = 150;
+    // Shrink window into 3D mascot footprint
+    const mascotWidth = 160;
+    const mascotHeight = 220;
     // Keep aligned to the right edge of previous window
     const newX = currentBounds.x + (currentBounds.width - mascotWidth);
     const newY = currentBounds.y;
 
+    mainWindow.setIgnoreMouseEvents(false);
     mainWindow.setBounds({
       x: Math.max(10, newX),
       y: Math.max(10, newY),
@@ -181,6 +182,7 @@ function setMascotMode(isMascot) {
     const targetX = Math.max(10, (currentBounds.x + currentBounds.width) - targetW);
     const targetY = currentBounds.y;
 
+    mainWindow.setIgnoreMouseEvents(false);
     mainWindow.setBounds({
       x: targetX,
       y: targetY,
