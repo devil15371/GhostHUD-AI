@@ -27,20 +27,11 @@
 
       <!-- Alive Figure Wrapper (Fluid Video Loop: Real breathing, traveling hair wave physics, organic eye blinks & coffee sips) -->
       <div class="mascot-figure-wrapper" id="mascot-figure-btn" title="Click or press Alt+Space to ask Koko!">
-        <div class="mascot-ambient-glow"></div>
+        <!-- 1. Fluid Living Idle Loop (Animated WebP with full 32-bit RGBA transparency) -->
+        <img src="assets/koko_idle_loop.webp" alt="Koko relaxed study" class="companion-state-img state-idle" id="img-mascot-idle">
 
-        <!-- 1. Fluid Living Idle Video Loop (Continuous organic breathing, silk hair breeze waves, natural eyelid blinks & swirling steam) -->
-        <video id="video-mascot-idle" class="companion-fluid-video state-idle" autoplay loop muted playsinline poster="assets/companion_alive_idle.png" onerror="this.classList.add('video-error')">
-          <source src="assets/koko_idle_loop.webm" type="video/webm">
-          <!-- Animated WebP fallback if video element fails -->
-          <img src="assets/koko_idle_loop.webp" alt="Koko relaxed study" class="companion-state-img state-idle" id="img-mascot-idle">
-        </video>
-
-        <!-- 2. Fluid Coffee Sipping Video Loop (Mug smoothly rises to lips, eyes close in cozy warmth, lowers back down) -->
-        <video id="video-mascot-sip" class="companion-fluid-video state-sip" muted playsinline poster="assets/companion_alive_sip.png" onerror="this.classList.add('video-error')">
-          <source src="assets/koko_sip_loop.webm" type="video/webm">
-          <img src="assets/koko_sip_loop.webp" alt="Koko drinking coffee" class="companion-state-img state-sip" id="img-mascot-sip">
-        </video>
+        <!-- 2. Fluid Coffee Sipping Loop (Animated WebP with full 32-bit RGBA transparency) -->
+        <img src="assets/koko_sip_loop.webp" alt="Koko drinking coffee" class="companion-state-img state-sip" id="img-mascot-sip">
 
         <!-- 3. Active Ask State (Notebook and pen ready on hover/wake) -->
         <img src="assets/companion_alive_active.png" alt="Koko active study" class="companion-state-img state-active" id="img-mascot-active">
@@ -265,9 +256,10 @@
           <div class="pref-box">
             <label for="select-model">Gemini Model</label>
             <select id="select-model">
-              <option value="gemini-2.5-flash">Gemini 2.5 Flash (Ultra-Fast & Smart)</option>
-              <option value="gemini-1.5-flash">Gemini 1.5 Flash (Reliable Free Tier)</option>
-              <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Math & Science)</option>
+              <option value="gemini-3.6-flash" selected>Gemini 3.6 Flash (Recommended — Ultra-Fast & Smart)</option>
+              <option value="gemini-flash-latest">Gemini Flash Latest</option>
+              <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (Low Latency)</option>
+              <option value="gemini-2.5-pro">Gemini 2.5 Pro (Deep Math & Science)</option>
             </select>
           </div>
 

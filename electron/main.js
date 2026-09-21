@@ -100,10 +100,8 @@ function createWindow() {
     frame: false,
     transparent: true,
     alwaysOnTop: true,
-    hasShadow: true,
+    hasShadow: false, // Eliminates macOS rectangular shadow box on transparent mascot
     backgroundColor: '#00000000',
-    vibrancy: 'under-window', // macOS frosted glass
-    visualEffectState: 'active',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -212,7 +210,7 @@ function setMascotMode(isMascot) {
 // Secure Gemini API Proxy in Node Backend (Key Never Exposed to Frontend)
 // --------------------------------------------------------------------------
 
-ipcMain.handle('gemini-generate', async (event, { promptText, attachedImage, model = 'gemini-2.5-flash' }) => {
+ipcMain.handle('gemini-generate', async (event, { promptText, attachedImage, model = 'gemini-3.6-flash' }) => {
   const apiKey = getStoredApiKey();
 
   if (!apiKey) {
@@ -329,6 +327,12 @@ ipcMain.on('hud-set-opacity', (event, opacity) => {
   if (!mainWindow) return;
   const safeOpacity = Math.max(0.15, Math.min(1.0, opacity));
   mainWindow.setOpacity(safeOpacity);
+});
+
+ipcMain.on('hud-move-window', (event, { deltaX, deltaY }) => {
+  if (!mainWindow) return;
+  const [x, y] = mainWindow.getPosition();
+  mainWindow.setPosition(Math.round(x + deltaX), Math.round(y + deltaY));
 });
 
 ipcMain.on('hud-minimize', () => {

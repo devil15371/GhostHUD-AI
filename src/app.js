@@ -66,7 +66,7 @@
   // State
   const STORAGE_KEY = 'koko_companion_v3';
   let config = {
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.6-flash',
     windowOpacity: 90,     // Window transparency percentage
     mascotOpacity: 95,     // 3D Mascot transparency percentage
     mascotIdleEnabled: true,
@@ -138,7 +138,7 @@
       }
     } catch (e) {}
 
-    selectModel.value = config.model || 'gemini-2.5-flash';
+    selectModel.value = config.model || 'gemini-3.6-flash';
     toggleMascotIdle.checked = config.mascotIdleEnabled !== false;
     sliderMascotDelay.value = config.mascotDelay || 4;
     valMascotDelay.textContent = `${sliderMascotDelay.value}s`;
@@ -257,7 +257,7 @@
     startCoffeeSchedule();
 
     const videoIdle = document.getElementById('video-mascot-idle');
-    if (videoIdle && videoIdle.paused) {
+    if (videoIdle && typeof videoIdle.play === 'function' && videoIdle.paused) {
       videoIdle.play().catch(() => {});
     }
 
@@ -282,8 +282,8 @@
     // Pause videos when collapsed into study HUD to save 100% CPU/GPU
     const videoIdle = document.getElementById('video-mascot-idle');
     const videoSip = document.getElementById('video-mascot-sip');
-    if (videoIdle) videoIdle.pause();
-    if (videoSip) videoSip.pause();
+    if (videoIdle && typeof videoIdle.pause === 'function') videoIdle.pause();
+    if (videoSip && typeof videoSip.pause === 'function') videoSip.pause();
 
     // Reset sipping state
     stopCoffeeSchedule();
@@ -394,9 +394,44 @@
      -------------------------------------------------------------------------- */
 
   function setupEvents() {
-    // Mascot Click Handlers (Reliable, instantaneous execution)
+    // Mascot Drag & Click Handlers (Allows moving the girl freely or clicking to open)
+    let isDraggingMascot = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let hasMovedMascot = false;
+
+    mascotFigureBtn.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return; // Left click only
+      isDraggingMascot = true;
+      hasMovedMascot = false;
+      dragStartX = e.screenX;
+      dragStartY = e.screenY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDraggingMascot || !isMascotMode) return;
+      const deltaX = e.screenX - dragStartX;
+      const deltaY = e.screenY - dragStartY;
+      if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
+        hasMovedMascot = true;
+        dragStartX = e.screenX;
+        dragStartY = e.screenY;
+        if (isElectron && window.ghostHUD.moveWindow) {
+          window.ghostHUD.moveWindow(deltaX, deltaY);
+        }
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDraggingMascot = false;
+    });
+
     mascotFigureBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (hasMovedMascot) {
+        hasMovedMascot = false;
+        return;
+      }
       wakeToExpanded();
     });
 
@@ -762,7 +797,7 @@
         const res = await window.ghostHUD.generateGemini({
           promptText: text,
           attachedImage: attached,
-          model: config.model || 'gemini-2.5-flash'
+          model: config.model || 'gemini-3.6-flash'
         });
 
         if (res.success) {
@@ -821,7 +856,7 @@
   }
 
   async function runDirectWebGemini(apiKey, text, attached, bubbleEl, itemEl) {
-    const model = config.model || 'gemini-2.5-flash';
+    const model = config.model || 'gemini-3.6-flash';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
     const parts = [];
