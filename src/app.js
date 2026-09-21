@@ -301,11 +301,11 @@
   let coffeeInterval = null;
 
   const coffeeThoughts = [
-    "Mmm, warm coffee hits the spot! ☕",
-    "Taking a cozy sip while we study... ☕",
-    "Ah, delicious roast! Back to focus ✏️",
-    "Coffee break over, let's ace this topic! ☕",
-    "Steam smells so good... still here with you! ☕"
+    "Warm coffee! ☕",
+    "Cozy coffee sip... ☕",
+    "Mmm, delicious! ☕",
+    "Fresh roast ☕",
+    "Studying with you ☕"
   ];
 
   function drinkCoffee() {
