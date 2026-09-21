@@ -109,6 +109,16 @@
       if (hasKey) {
         inputApiKey.placeholder = '•••••••••••••••• (Key safely configured)';
       }
+    } else {
+      try {
+        const res = await fetch('/api/key');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.hasKey) {
+            inputApiKey.placeholder = '•••••••••••••••• (Key safely configured in server)';
+          }
+        }
+      } catch (e) {}
     }
 
     // Electron IPC event bridges
@@ -138,7 +148,12 @@
       }
     } catch (e) {}
 
-    selectModel.value = config.model || 'gemini-3.6-flash';
+    // Auto-migrate any legacy models from previous localStorage runs
+    if (!config.model || config.model.includes('2.5') || config.model.includes('1.5')) {
+      config.model = 'gemini-3.6-flash';
+    }
+
+    selectModel.value = config.model;
     toggleMascotIdle.checked = config.mascotIdleEnabled !== false;
     sliderMascotDelay.value = config.mascotDelay || 4;
     valMascotDelay.textContent = `${sliderMascotDelay.value}s`;
@@ -810,12 +825,42 @@
           throw new Error(res.error || 'Could not get response');
         }
       } else {
-        // Web fallback (direct key or smart demo)
-        const webKey = localStorage.getItem('koko_web_key');
-        if (webKey) {
-          await runDirectWebGemini(webKey, text, attached, bubbleEl, itemEl);
-        } else {
-          await runSmartDemo(text, attached, bubbleEl, itemEl);
+        // Web fallback (try local server API proxy first)
+        let proxyHandled = false;
+        try {
+          const proxyRes = await fetch('/api/gemini', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              promptText: text,
+              attachedImage: attached,
+              model: config.model || 'gemini-3.6-flash'
+            })
+          });
+          if (proxyRes.ok) {
+            const data = await proxyRes.json();
+            if (data.success) {
+              proxyHandled = true;
+              bubbleEl.innerHTML = renderFormatted(data.reply);
+              attachCopyBtn(itemEl, data.reply);
+              config.messages.push({ role: 'assistant', text: data.reply, timestamp: Date.now() });
+            } else if (!data.isDemo && data.error !== 'NO_API_KEY') {
+              throw new Error(data.error || 'Gemini error');
+            }
+          }
+        } catch (err) {
+          if (err.message && !err.message.includes('Failed to fetch')) {
+            throw err;
+          }
+        }
+
+        if (!proxyHandled) {
+          const webKey = localStorage.getItem('koko_web_key');
+          if (webKey) {
+            await runDirectWebGemini(webKey, text, attached, bubbleEl, itemEl);
+          } else {
+            await runSmartDemo(text, attached, bubbleEl, itemEl);
+          }
         }
       }
     } catch (err) {

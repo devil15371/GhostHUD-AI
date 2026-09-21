@@ -9,24 +9,55 @@ let currentMode = 'expanded'; // 'expanded' | 'mascot'
 // Last expanded bounds to restore properly
 let expandedBounds = { width: 380, height: 580, x: null, y: null };
 
-// Load environment variables securely from .env (never exposed)
+// Load environment variables securely from .env and userData secure_config.json
 function loadEnv() {
-  const envPath = path.join(__dirname, '../.env');
-  if (fs.existsSync(envPath)) {
-    try {
-      const content = fs.readFileSync(envPath, 'utf8');
-      const lines = content.split('\n');
-      for (const line of lines) {
-        const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
-        if (match) {
-          let val = (match[2] || '').trim();
-          if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
-          if (val.startsWith("'") && val.endsWith("'")) val = val.slice(1, -1);
-          process.env[match[1]] = val;
-        }
+  // 1. Check userData secure_config.json first (most reliable for packaged macOS apps)
+  try {
+    const configPath = path.join(app.getPath('userData'), 'secure_config.json');
+    if (fs.existsSync(configPath)) {
+      const data = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      if (data && data.apiKey && data.apiKey.trim()) {
+        process.env.GEMINI_API_KEY = data.apiKey.trim();
+        return;
       }
-    } catch (err) {
-      console.warn('Could not read .env file:', err);
+    }
+  } catch (e) {}
+
+  // 2. Check candidate .env paths
+  const candidatePaths = [
+    path.join(__dirname, '../.env'),
+    path.join(process.cwd(), '.env'),
+    path.join(app.getAppPath(), '../.env'),
+    path.join(app.getAppPath(), '../../../../.env'),
+    path.join(path.dirname(process.execPath), '../../../../.env'),
+    '/Users/aman/ai tab/.env'
+  ];
+
+  for (const envPath of candidatePaths) {
+    if (fs.existsSync(envPath)) {
+      try {
+        const content = fs.readFileSync(envPath, 'utf8');
+        const lines = content.split('\n');
+        for (const line of lines) {
+          const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+          if (match) {
+            let val = (match[2] || '').trim();
+            if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
+            if (val.startsWith("'") && val.endsWith("'")) val = val.slice(1, -1);
+            process.env[match[1]] = val;
+          }
+        }
+        if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim()) {
+          // Persist to userData secure_config.json for future runs
+          try {
+            const configPath = path.join(app.getPath('userData'), 'secure_config.json');
+            fs.writeFileSync(configPath, JSON.stringify({ apiKey: process.env.GEMINI_API_KEY.trim() }, null, 2), 'utf8');
+          } catch (e) {}
+          return;
+        }
+      } catch (err) {
+        console.warn('Could not read .env file:', err);
+      }
     }
   }
 }
@@ -37,13 +68,38 @@ function getStoredApiKey() {
   if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim()) {
     return process.env.GEMINI_API_KEY.trim();
   }
-  // Fallback to user config in userData
-  const configPath = path.join(app.getPath('userData'), 'secure_config.json');
-  if (fs.existsSync(configPath)) {
-    try {
+  // Try reading userData secure_config.json
+  try {
+    const configPath = path.join(app.getPath('userData'), 'secure_config.json');
+    if (fs.existsSync(configPath)) {
       const data = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      if (data.apiKey) return data.apiKey.trim();
-    } catch (e) {}
+      if (data && data.apiKey && data.apiKey.trim()) {
+        process.env.GEMINI_API_KEY = data.apiKey.trim();
+        return data.apiKey.trim();
+      }
+    }
+  } catch (e) {}
+
+  // Fallback: search candidate .env paths
+  const candidatePaths = [
+    path.join(__dirname, '../.env'),
+    path.join(process.cwd(), '.env'),
+    path.join(app.getAppPath(), '../.env'),
+    path.join(path.dirname(process.execPath), '../../../../.env'),
+    '/Users/aman/ai tab/.env'
+  ];
+  for (const envPath of candidatePaths) {
+    if (fs.existsSync(envPath)) {
+      try {
+        const content = fs.readFileSync(envPath, 'utf8');
+        const match = content.match(/^GEMINI_API_KEY\s*=\s*(.*)$/m);
+        if (match && match[1] && match[1].trim()) {
+          const k = match[1].trim().replace(/^['"]|['"]$/g, '');
+          process.env.GEMINI_API_KEY = k;
+          return k;
+        }
+      } catch (e) {}
+    }
   }
   return '';
 }
@@ -52,30 +108,33 @@ function saveStoredApiKey(key) {
   const cleanKey = (key || '').trim();
   process.env.GEMINI_API_KEY = cleanKey;
 
-  // Update .env file preserving existing content (only change GEMINI_API_KEY line)
-  const envPath = path.join(__dirname, '../.env');
+  // Save to userData secure storage (always writable)
   try {
-    let content = '';
-    if (fs.existsSync(envPath)) {
-      content = fs.readFileSync(envPath, 'utf8');
-    }
-    // Replace existing GEMINI_API_KEY line or append it
-    if (/^GEMINI_API_KEY\s*=/m.test(content)) {
-      content = content.replace(/^GEMINI_API_KEY\s*=.*$/m, `GEMINI_API_KEY=${cleanKey}`);
-    } else {
-      content = content.trimEnd() + `\nGEMINI_API_KEY=${cleanKey}\n`;
-    }
-    fs.writeFileSync(envPath, content, 'utf8');
-  } catch (e) {
-    console.warn('Could not write .env file:', e.message);
-  }
-
-  // Also save to userData secure storage
-  const configPath = path.join(app.getPath('userData'), 'secure_config.json');
-  try {
+    const configPath = path.join(app.getPath('userData'), 'secure_config.json');
     fs.writeFileSync(configPath, JSON.stringify({ apiKey: cleanKey }, null, 2), 'utf8');
   } catch (e) {
     console.warn('Could not write secure_config.json:', e.message);
+  }
+
+  // Also update candidate .env files if present
+  const candidatePaths = [
+    path.join(__dirname, '../.env'),
+    path.join(process.cwd(), '.env'),
+    '/Users/aman/ai tab/.env'
+  ];
+  for (const envPath of candidatePaths) {
+    try {
+      if (fs.existsSync(envPath)) {
+        let content = fs.readFileSync(envPath, 'utf8');
+        if (/^GEMINI_API_KEY\s*=/m.test(content)) {
+          content = content.replace(/^GEMINI_API_KEY\s*=.*$/m, `GEMINI_API_KEY=${cleanKey}`);
+        } else {
+          content = content.trimEnd() + `\nGEMINI_API_KEY=${cleanKey}\n`;
+        }
+        fs.writeFileSync(envPath, content, 'utf8');
+        break;
+      }
+    } catch (e) {}
   }
 }
 
@@ -206,9 +265,53 @@ function setMascotMode(isMascot) {
   }
 }
 
-// --------------------------------------------------------------------------
-// Secure Gemini API Proxy in Node Backend (Key Never Exposed to Frontend)
-// --------------------------------------------------------------------------
+function executeGeminiRequest(apiKey, model, bodyData) {
+  return new Promise((resolve) => {
+    const options = {
+      hostname: 'generativelanguage.googleapis.com',
+      path: `/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(bodyData)
+      },
+      timeout: 20000
+    };
+
+    const req = https.request(options, (res) => {
+      let rawData = '';
+      res.on('data', (chunk) => { rawData += chunk; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(rawData);
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            const reply = parsed?.candidates?.[0]?.content?.parts?.[0]?.text || "Couldn't formulate a reply!";
+            resolve({ success: true, reply, statusCode: res.statusCode });
+          } else {
+            const errMsg = parsed?.error?.message || `API error ${res.statusCode}`;
+            console.warn(`[GhostHUD] Gemini error (${model}):`, errMsg);
+            resolve({ success: false, error: errMsg, statusCode: res.statusCode });
+          }
+        } catch (parseErr) {
+          resolve({ success: false, error: 'Failed to parse Gemini response', statusCode: res.statusCode });
+        }
+      });
+    });
+
+    req.on('error', (err) => {
+      console.warn('[GhostHUD] Network error:', err.message);
+      resolve({ success: false, error: err.message, statusCode: 0 });
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ success: false, error: 'Gemini request timed out. Check your connection.', statusCode: 408 });
+    });
+
+    req.write(bodyData);
+    req.end();
+  });
+}
 
 ipcMain.handle('gemini-generate', async (event, { promptText, attachedImage, model = 'gemini-3.6-flash' }) => {
   const apiKey = getStoredApiKey();
@@ -220,6 +323,12 @@ ipcMain.handle('gemini-generate', async (event, { promptText, attachedImage, mod
       error: 'NO_API_KEY',
       message: 'No API key configured. You can use Demo Mode or enter your free Gemini key in Settings.'
     };
+  }
+
+  // Auto-upgrade any legacy models
+  let activeModel = model;
+  if (!activeModel || activeModel.includes('2.5') || activeModel.includes('1.5')) {
+    activeModel = 'gemini-3.6-flash';
   }
 
   // Human, friendly, peer-tutor system instruction
@@ -255,49 +364,20 @@ ipcMain.handle('gemini-generate', async (event, { promptText, attachedImage, mod
     }
   });
 
-  return new Promise((resolve) => {
-    const options = {
-      hostname: 'generativelanguage.googleapis.com',
-      path: `/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(bodyData)
-      },
-      timeout: 15000
-    };
+  // Call primary model
+  let result = await executeGeminiRequest(apiKey, activeModel, bodyData);
 
-    const req = https.request(options, (res) => {
-      let rawData = '';
-      res.on('data', (chunk) => { rawData += chunk; });
-      res.on('end', () => {
-        try {
-          const parsed = JSON.parse(rawData);
-          if (res.statusCode >= 200 && res.statusCode < 300) {
-            const reply = parsed?.candidates?.[0]?.content?.parts?.[0]?.text || "Couldn't formulate a reply!";
-            resolve({ success: true, reply });
-          } else {
-            const errMsg = parsed?.error?.message || `API error ${res.statusCode}`;
-            resolve({ success: false, error: errMsg });
-          }
-        } catch (parseErr) {
-          resolve({ success: false, error: 'Failed to parse Gemini response' });
-        }
-      });
-    });
+  // If 503 (temporary spike) or 404 (model issue), try fallback models
+  if (!result.success && (result.statusCode === 503 || result.statusCode === 404)) {
+    const fallbacks = ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-flash-latest'].filter(m => m !== activeModel);
+    for (const fb of fallbacks) {
+      console.log(`[GhostHUD] Retrying with fallback model: ${fb}`);
+      result = await executeGeminiRequest(apiKey, fb, bodyData);
+      if (result.success) break;
+    }
+  }
 
-    req.on('error', (err) => {
-      resolve({ success: false, error: err.message });
-    });
-
-    req.on('timeout', () => {
-      req.destroy();
-      resolve({ success: false, error: 'Gemini request timed out. Check your connection.' });
-    });
-
-    req.write(bodyData);
-    req.end();
-  });
+  return result;
 });
 
 ipcMain.handle('get-has-api-key', () => {
