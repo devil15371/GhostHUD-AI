@@ -18,6 +18,7 @@
   const mascotBubble = document.getElementById('mascot-bubble');
   const mascotSpeechText = document.getElementById('mascot-speech-text');
   const btnMascotWake = document.getElementById('btn-mascot-wake');
+  const btnMascotSip = document.getElementById('btn-mascot-sip');
 
   const windowEl = document.getElementById('hud-window');
   const chatFeed = document.getElementById('chat-feed');
@@ -252,6 +253,9 @@
 
     applyMascotTransparency(config.mascotOpacity);
 
+    // Schedule periodic cozy coffee sips while studying together
+    startCoffeeSchedule();
+
     if (isElectron && notifyElectron && window.ghostHUD.setMascotMode) {
       window.ghostHUD.setMascotMode(true);
     }
@@ -262,6 +266,13 @@
     container.classList.remove('mascot-view');
     container.classList.add('expanded-view');
 
+    // Reset sipping state
+    stopCoffeeSchedule();
+    if (isSipping) {
+      mascotStage.classList.remove('is-sipping');
+      isSipping = false;
+    }
+
     applyWindowTransparency(config.windowOpacity);
 
     if (isElectron && notifyElectron && window.ghostHUD.setMascotMode) {
@@ -269,6 +280,76 @@
     }
 
     resetIdleTimer();
+  }
+
+  /* --------------------------------------------------------------------------
+     Living Companion Interactions: Coffee Sipping & Eye Blinks
+     -------------------------------------------------------------------------- */
+  let isSipping = false;
+  let sipTimer = null;
+  let coffeeInterval = null;
+
+  const coffeeThoughts = [
+    "Mmm, warm coffee hits the spot! ☕",
+    "Taking a cozy sip while we study... ☕",
+    "Ah, delicious roast! Back to focus ✏️",
+    "Coffee break over, let's ace this topic! ☕",
+    "Steam smells so good... still here with you! ☕"
+  ];
+
+  function drinkCoffee() {
+    if (isSipping || !isMascotMode) return;
+    isSipping = true;
+    mascotStage.classList.add('is-sipping');
+
+    const coffeeThought = coffeeThoughts[Math.floor(Math.random() * coffeeThoughts.length)];
+    mascotSpeechText.textContent = coffeeThought;
+
+    if (sipTimer) clearTimeout(sipTimer);
+    sipTimer = setTimeout(() => {
+      mascotStage.classList.remove('is-sipping');
+      isSipping = false;
+      // Do a sweet double blink when returning to study posture
+      triggerBlink(true);
+      setTimeout(() => {
+        if (isMascotMode && !mascotFigureBtn.matches(':hover')) {
+          mascotSpeechText.textContent = "Watching lecture with you... ☕";
+        }
+      }, 1400);
+    }, 2800);
+  }
+
+  function triggerBlink(doubleBlink = false) {
+    if (isSipping) return;
+    mascotFigureBtn.classList.add('blink-active');
+    setTimeout(() => {
+      mascotFigureBtn.classList.remove('blink-active');
+      if (doubleBlink) {
+        setTimeout(() => {
+          if (isSipping) return;
+          mascotFigureBtn.classList.add('blink-active');
+          setTimeout(() => {
+            mascotFigureBtn.classList.remove('blink-active');
+          }, 140);
+        }, 120);
+      }
+    }, 160);
+  }
+
+  function startCoffeeSchedule() {
+    if (coffeeInterval) clearInterval(coffeeInterval);
+    coffeeInterval = setInterval(() => {
+      if (isMascotMode && !isThinking && !mascotStage.matches(':hover') && !isSipping) {
+        drinkCoffee();
+      }
+    }, 18000);
+  }
+
+  function stopCoffeeSchedule() {
+    if (coffeeInterval) {
+      clearInterval(coffeeInterval);
+      coffeeInterval = null;
+    }
   }
 
   /* --------------------------------------------------------------------------
@@ -292,6 +373,13 @@
       wakeToExpanded();
     });
 
+    if (btnMascotSip) {
+      btnMascotSip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        drinkCoffee();
+      });
+    }
+
     mascotStage.addEventListener('dblclick', (e) => {
       e.stopPropagation();
       wakeToExpanded();
@@ -299,11 +387,15 @@
 
     // Dynamic Hover Reactions that bring Koko to life!
     mascotFigureBtn.addEventListener('mouseenter', () => {
-      mascotSpeechText.textContent = "I'm ready! What's confusing you? ✏️";
+      if (!isSipping) {
+        mascotSpeechText.textContent = "I'm ready! What's confusing you? ✏️";
+      }
     });
 
     mascotFigureBtn.addEventListener('mouseleave', () => {
-      mascotSpeechText.textContent = "Watching lecture with you... ☕";
+      if (!isSipping) {
+        mascotSpeechText.textContent = "Watching lecture with you... ☕";
+      }
     });
 
     // Morph button in header

@@ -146,11 +146,11 @@ body.koko-body {
   cursor: pointer !important;
   -webkit-app-region: no-drag !important;
   animation: alive-breathe 4s ease-in-out infinite;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .mascot-figure-wrapper:hover {
-  transform: scale(1.04) translateY(-2px);
+  transform: scale(1.03) translateY(-2px);
 }
 
 .mascot-ambient-glow {
@@ -163,38 +163,203 @@ body.koko-body {
   z-index: 1;
 }
 
-/* Dual State Images (Cross-Fade on Hover for Living Reaction) */
-.companion-state-img {
+/* Coffee Steam Wisps Rising from Mug */
+.coffee-steam-container {
   position: absolute;
+  bottom: 48px;
+  left: 28px;
+  width: 46px;
+  height: 52px;
+  pointer-events: none;
+  z-index: 7;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.steam-wisp {
+  position: absolute;
+  bottom: 4px;
+  width: 7px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 75%);
+  filter: blur(2.5px);
+  animation: steam-drift 3.2s infinite ease-out;
+}
+
+.steam-wisp.wisp-1 { left: 8px; animation-delay: 0s; animation-duration: 3s; }
+.steam-wisp.wisp-2 { left: 18px; animation-delay: 1.1s; animation-duration: 3.4s; }
+.steam-wisp.wisp-3 { left: 28px; animation-delay: 2.1s; animation-duration: 2.8s; }
+
+@keyframes steam-drift {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.6) rotate(0deg);
+  }
+  30% {
+    opacity: 0.6;
+  }
+  70% {
+    opacity: 0.25;
+    transform: translateY(-24px) scale(1.35) rotate(10deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-44px) scale(1.9) rotate(22deg);
+  }
+}
+
+/* Organic Flowing Hair Breeze Strands */
+.companion-hair-strand {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  z-index: 2;
+  z-index: 6;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+.companion-hair-right {
+  transform-origin: 65% 26%;
+  animation: hair-breeze-right 4.2s ease-in-out infinite alternate;
+}
+
+.companion-hair-left {
+  transform-origin: 32% 26%;
+  animation: hair-breeze-left 4.8s ease-in-out infinite alternate;
+}
+
+@keyframes hair-breeze-right {
+  0% {
+    transform: rotate(0deg) skewX(0deg) translateY(0) scale(1);
+  }
+  35% {
+    transform: rotate(2.2deg) skewX(2.6deg) translateY(-1px) scale(1.012);
+  }
+  70% {
+    transform: rotate(-1.4deg) skewX(-1.6deg) translateY(0.6px) scale(0.995);
+  }
+  100% {
+    transform: rotate(3.4deg) skewX(3.6deg) translateY(-1.8px) scale(1.018);
+  }
+}
+
+@keyframes hair-breeze-left {
+  0% {
+    transform: rotate(0deg) skewX(0deg) translateY(0) scale(1);
+  }
+  40% {
+    transform: rotate(-2deg) skewX(-2.2deg) translateY(-0.8px) scale(1.01);
+  }
+  75% {
+    transform: rotate(1.2deg) skewX(1.4deg) translateY(0.5px) scale(0.992);
+  }
+  100% {
+    transform: rotate(-2.5deg) skewX(-2.8deg) translateY(-1.4px) scale(1.014);
+  }
+}
+
+/* Multi-State Companion Living Art */
+.companion-state-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.75));
-  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s ease;
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s ease;
   pointer-events: auto !important;
   cursor: pointer !important;
 }
 
+/* Base Idle (holding mug, smiling) */
 .companion-state-img.state-idle {
   opacity: 1;
+  z-index: 2;
   transform: scale(1);
 }
 
+/* Seamless Eye Blink Layer (Only eyelid/lashes change, 100% pixel aligned) */
+.companion-state-img.state-blink {
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none !important;
+  transform: scale(1);
+}
+
+/* Living Natural Eye Blinking Rhythm */
+.mascot-stage:not(:hover):not(.is-sipping) .companion-state-img.state-blink {
+  animation: natural-eye-blink 4.6s infinite;
+}
+
+.mascot-figure-wrapper.blink-active .companion-state-img.state-blink {
+  opacity: 1 !important;
+}
+
+@keyframes natural-eye-blink {
+  0%, 92.5%, 97.5%, 100% {
+    opacity: 0;
+  }
+  94%, 96% {
+    opacity: 1;
+  }
+}
+
+/* Coffee Sipping State */
+.companion-state-img.state-sip {
+  opacity: 0;
+  z-index: 4;
+  pointer-events: none !important;
+  transform: scale(0.98) translateY(2px);
+}
+
+/* Active Ask State (Notebook and pen ready) */
 .companion-state-img.state-active {
   opacity: 0;
+  z-index: 5;
+  pointer-events: none !important;
   transform: scale(0.98);
 }
 
-/* Living Hover Reaction: She looks up from her tea, smiles, and holds up her notebook! */
-.mascot-stage:hover .companion-state-img.state-idle {
+/* State: Hover Reaction -> Eager Ask State */
+.mascot-stage:hover:not(.is-sipping) .companion-state-img.state-idle {
   opacity: 0;
   transform: scale(0.98);
 }
 
-.mascot-stage:hover .companion-state-img.state-active {
+.mascot-stage:hover:not(.is-sipping) .companion-state-img.state-blink {
+  opacity: 0 !important;
+  animation: none !important;
+}
+
+.mascot-stage:hover:not(.is-sipping) .companion-state-img.state-active {
   opacity: 1;
   transform: scale(1);
+}
+
+/* State: Sipping Coffee */
+.mascot-stage.is-sipping .companion-state-img.state-idle {
+  opacity: 0;
+  transform: scale(0.97);
+}
+
+.mascot-stage.is-sipping .companion-state-img.state-blink {
+  opacity: 0 !important;
+  animation: none !important;
+}
+
+.mascot-stage.is-sipping .companion-hair-strand {
+  opacity: 0.15;
+}
+
+.mascot-stage.is-sipping .companion-state-img.state-sip {
+  opacity: 1;
+  transform: scale(1.02) translateY(-2px);
+}
+
+.mascot-stage.is-sipping .coffee-steam-container {
+  transform: translateY(-8px) scale(1.1);
 }
 
 @keyframes alive-breathe {
@@ -202,14 +367,14 @@ body.koko-body {
     transform: translateY(0px) scale(1);
   }
   50% {
-    transform: translateY(-5px) scale(1.015);
+    transform: translateY(-4.5px) scale(1.012);
   }
 }
 
 /* Speech Bubble above Alive Figure */
 .mascot-bubble {
   position: absolute;
-  top: 14px;
+  top: 12px;
   background: rgba(13, 17, 27, 0.95);
   border: 1px solid rgba(244, 114, 182, 0.45);
   backdrop-filter: blur(16px);
@@ -238,27 +403,56 @@ body.koko-body {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Wake prompt pill */
-.mascot-wake-pill {
-  background: linear-gradient(135deg, rgba(244, 114, 182, 0.3), rgba(99, 102, 241, 0.3));
-  border: 1px solid rgba(244, 114, 182, 0.5);
-  backdrop-filter: blur(10px);
+/* Dual Action Pills Row under Mascot */
+.mascot-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: -6px;
+  z-index: 12;
+}
+
+.mascot-action-pill {
+  border: 1px solid rgba(244, 114, 182, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: #fff;
-  padding: 3px 10px;
+  padding: 3px 9px;
   border-radius: var(--radius-pill);
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 700;
   cursor: pointer !important;
   -webkit-app-region: no-drag !important;
-  transition: all 0.2s ease;
-  margin-top: -6px;
-  z-index: 10;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
-.mascot-wake-pill:hover {
+.mascot-action-pill.pill-sip {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.28), rgba(244, 114, 182, 0.24));
+  border-color: rgba(251, 191, 36, 0.45);
+}
+
+.mascot-action-pill.pill-sip:hover {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.5), rgba(244, 114, 182, 0.45));
+  border-color: #fbbf24;
+  transform: scale(1.06);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.5);
+}
+
+.mascot-action-pill.pill-wake {
+  background: linear-gradient(135deg, rgba(244, 114, 182, 0.3), rgba(99, 102, 241, 0.3));
+  border-color: rgba(244, 114, 182, 0.5);
+}
+
+.mascot-action-pill.pill-wake:hover {
   background: linear-gradient(135deg, var(--accent-pink), var(--accent-indigo));
-  transform: scale(1.05);
+  border-color: var(--accent-pink);
+  transform: scale(1.06);
   box-shadow: 0 0 12px rgba(244, 114, 182, 0.5);
+}
+
+.mascot-action-pill:active {
+  transform: scale(0.96);
 }
 
 /* ==========================================================================
