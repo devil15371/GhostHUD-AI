@@ -24,31 +24,24 @@
         <span id="mascot-speech-text">Watching lecture with you... ☕</span>
       </div>
 
-      <!-- Alive Figure Wrapper (Coffee Sipping, Eye Blinking, Hair Fluttering) -->
+      <!-- Alive Figure Wrapper (Fluid Video Loop: Real breathing, traveling hair wave physics, organic eye blinks & coffee sips) -->
       <div class="mascot-figure-wrapper" id="mascot-figure-btn" title="Click or press Alt+Space to ask Koko!">
         <div class="mascot-ambient-glow"></div>
-        
-        <!-- Coffee Steam Rising Wisps -->
-        <div class="coffee-steam-container" id="coffee-steam">
-          <span class="steam-wisp wisp-1"></span>
-          <span class="steam-wisp wisp-2"></span>
-          <span class="steam-wisp wisp-3"></span>
-        </div>
 
-        <!-- Flowing Hair Strands (Organic Breeze Flutter) -->
-        <img src="assets/companion_hair_strand_left.png" alt="" class="companion-hair-strand companion-hair-left" id="hair-strand-left">
-        <img src="assets/companion_hair_strand_right.png" alt="" class="companion-hair-strand companion-hair-right" id="hair-strand-right">
+        <!-- 1. Fluid Living Idle Video Loop (Continuous organic breathing, silk hair breeze waves, natural eyelid blinks & swirling steam) -->
+        <video id="video-mascot-idle" class="companion-fluid-video state-idle" autoplay loop muted playsinline poster="assets/companion_alive_idle.png">
+          <source src="assets/koko_idle_loop.webm" type="video/webm">
+          <!-- Animated WebP fallback if video element fails -->
+          <img src="assets/koko_idle_loop.webp" alt="Koko relaxed study" class="companion-state-img state-idle" id="img-mascot-idle">
+        </video>
 
-        <!-- Relaxed Base Idle State (Mug in hands, open eyes, breathing) -->
-        <img src="assets/companion_alive_idle.png" alt="Koko relaxed study" class="companion-state-img state-idle" id="img-mascot-idle">
+        <!-- 2. Fluid Coffee Sipping Video Loop (Mug smoothly rises to lips, eyes close in cozy warmth, lowers back down) -->
+        <video id="video-mascot-sip" class="companion-fluid-video state-sip" muted playsinline poster="assets/companion_alive_sip.png">
+          <source src="assets/koko_sip_loop.webm" type="video/webm">
+          <img src="assets/koko_sip_loop.webp" alt="Koko drinking coffee" class="companion-state-img state-sip" id="img-mascot-sip">
+        </video>
 
-        <!-- Natural Eye Blink Layer (Seamless pixel-perfect blink) -->
-        <img src="assets/companion_alive_blink.png" alt="Koko blinking" class="companion-state-img state-blink" id="img-mascot-blink">
-
-        <!-- Coffee Sipping State (Lifting steaming mug to sip peacefully) -->
-        <img src="assets/companion_alive_sip.png" alt="Koko drinking coffee" class="companion-state-img state-sip" id="img-mascot-sip">
-
-        <!-- Active Ask State (Notebook and pen ready on hover/wake) -->
+        <!-- 3. Active Ask State (Notebook and pen ready on hover/wake) -->
         <img src="assets/companion_alive_active.png" alt="Koko active study" class="companion-state-img state-active" id="img-mascot-active">
       </div>
 

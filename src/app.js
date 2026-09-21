@@ -256,6 +256,11 @@
     // Schedule periodic cozy coffee sips while studying together
     startCoffeeSchedule();
 
+    const videoIdle = document.getElementById('video-mascot-idle');
+    if (videoIdle && videoIdle.paused) {
+      videoIdle.play().catch(() => {});
+    }
+
     if (isElectron && notifyElectron && window.ghostHUD.setMascotMode) {
       window.ghostHUD.setMascotMode(true);
     }
@@ -265,6 +270,12 @@
     isMascotMode = false;
     container.classList.remove('mascot-view');
     container.classList.add('expanded-view');
+
+    // Pause videos when collapsed into study HUD to save 100% CPU/GPU
+    const videoIdle = document.getElementById('video-mascot-idle');
+    const videoSip = document.getElementById('video-mascot-sip');
+    if (videoIdle) videoIdle.pause();
+    if (videoSip) videoSip.pause();
 
     // Reset sipping state
     stopCoffeeSchedule();
@@ -302,6 +313,12 @@
     isSipping = true;
     mascotStage.classList.add('is-sipping');
 
+    const videoSip = document.getElementById('video-mascot-sip');
+    if (videoSip) {
+      videoSip.currentTime = 0;
+      videoSip.play().catch(() => {});
+    }
+
     const coffeeThought = coffeeThoughts[Math.floor(Math.random() * coffeeThoughts.length)];
     mascotSpeechText.textContent = coffeeThought;
 
@@ -309,14 +326,16 @@
     sipTimer = setTimeout(() => {
       mascotStage.classList.remove('is-sipping');
       isSipping = false;
-      // Do a sweet double blink when returning to study posture
-      triggerBlink(true);
+      const videoIdle = document.getElementById('video-mascot-idle');
+      if (videoIdle && videoIdle.paused) {
+        videoIdle.play().catch(() => {});
+      }
       setTimeout(() => {
         if (isMascotMode && !mascotFigureBtn.matches(':hover')) {
           mascotSpeechText.textContent = "Watching lecture with you... ☕";
         }
       }, 1400);
-    }, 2800);
+    }, 3160);
   }
 
   function triggerBlink(doubleBlink = false) {

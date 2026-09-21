@@ -163,104 +163,8 @@ body.koko-body {
   z-index: 1;
 }
 
-/* Coffee Steam Wisps Rising from Mug */
-.coffee-steam-container {
-  position: absolute;
-  bottom: 48px;
-  left: 28px;
-  width: 46px;
-  height: 52px;
-  pointer-events: none;
-  z-index: 7;
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.steam-wisp {
-  position: absolute;
-  bottom: 4px;
-  width: 7px;
-  height: 22px;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 75%);
-  filter: blur(2.5px);
-  animation: steam-drift 3.2s infinite ease-out;
-}
-
-.steam-wisp.wisp-1 { left: 8px; animation-delay: 0s; animation-duration: 3s; }
-.steam-wisp.wisp-2 { left: 18px; animation-delay: 1.1s; animation-duration: 3.4s; }
-.steam-wisp.wisp-3 { left: 28px; animation-delay: 2.1s; animation-duration: 2.8s; }
-
-@keyframes steam-drift {
-  0% {
-    opacity: 0;
-    transform: translateY(0) scale(0.6) rotate(0deg);
-  }
-  30% {
-    opacity: 0.6;
-  }
-  70% {
-    opacity: 0.25;
-    transform: translateY(-24px) scale(1.35) rotate(10deg);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-44px) scale(1.9) rotate(22deg);
-  }
-}
-
-/* Organic Flowing Hair Breeze Strands */
-.companion-hair-strand {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  z-index: 6;
-  pointer-events: none;
-  transition: opacity 0.35s ease;
-}
-
-.companion-hair-right {
-  transform-origin: 65% 26%;
-  animation: hair-breeze-right 4.2s ease-in-out infinite alternate;
-}
-
-.companion-hair-left {
-  transform-origin: 32% 26%;
-  animation: hair-breeze-left 4.8s ease-in-out infinite alternate;
-}
-
-@keyframes hair-breeze-right {
-  0% {
-    transform: rotate(0deg) skewX(0deg) translateY(0) scale(1);
-  }
-  35% {
-    transform: rotate(2.2deg) skewX(2.6deg) translateY(-1px) scale(1.012);
-  }
-  70% {
-    transform: rotate(-1.4deg) skewX(-1.6deg) translateY(0.6px) scale(0.995);
-  }
-  100% {
-    transform: rotate(3.4deg) skewX(3.6deg) translateY(-1.8px) scale(1.018);
-  }
-}
-
-@keyframes hair-breeze-left {
-  0% {
-    transform: rotate(0deg) skewX(0deg) translateY(0) scale(1);
-  }
-  40% {
-    transform: rotate(-2deg) skewX(-2.2deg) translateY(-0.8px) scale(1.01);
-  }
-  75% {
-    transform: rotate(1.2deg) skewX(1.4deg) translateY(0.5px) scale(0.992);
-  }
-  100% {
-    transform: rotate(-2.5deg) skewX(-2.8deg) translateY(-1.4px) scale(1.014);
-  }
-}
-
-/* Multi-State Companion Living Art */
+/* Fluid Video Loop & Multi-State Living Anime Art */
+.companion-fluid-video,
 .companion-state-img {
   position: absolute;
   inset: 0;
@@ -271,42 +175,19 @@ body.koko-body {
   transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s ease;
   pointer-events: auto !important;
   cursor: pointer !important;
+  background: transparent;
 }
 
-/* Base Idle (holding mug, smiling) */
+/* Base Idle (continuous fluid video of breathing, hair waving, natural blinks, steam) */
+.companion-fluid-video.state-idle,
 .companion-state-img.state-idle {
   opacity: 1;
   z-index: 2;
   transform: scale(1);
 }
 
-/* Seamless Eye Blink Layer (Only eyelid/lashes change, 100% pixel aligned) */
-.companion-state-img.state-blink {
-  opacity: 0;
-  z-index: 3;
-  pointer-events: none !important;
-  transform: scale(1);
-}
-
-/* Living Natural Eye Blinking Rhythm */
-.mascot-stage:not(:hover):not(.is-sipping) .companion-state-img.state-blink {
-  animation: natural-eye-blink 4.6s infinite;
-}
-
-.mascot-figure-wrapper.blink-active .companion-state-img.state-blink {
-  opacity: 1 !important;
-}
-
-@keyframes natural-eye-blink {
-  0%, 92.5%, 97.5%, 100% {
-    opacity: 0;
-  }
-  94%, 96% {
-    opacity: 1;
-  }
-}
-
-/* Coffee Sipping State */
+/* Coffee Sipping Video */
+.companion-fluid-video.state-sip,
 .companion-state-img.state-sip {
   opacity: 0;
   z-index: 4;
@@ -323,14 +204,10 @@ body.koko-body {
 }
 
 /* State: Hover Reaction -> Eager Ask State */
+.mascot-stage:hover:not(.is-sipping) .companion-fluid-video.state-idle,
 .mascot-stage:hover:not(.is-sipping) .companion-state-img.state-idle {
   opacity: 0;
   transform: scale(0.98);
-}
-
-.mascot-stage:hover:not(.is-sipping) .companion-state-img.state-blink {
-  opacity: 0 !important;
-  animation: none !important;
 }
 
 .mascot-stage:hover:not(.is-sipping) .companion-state-img.state-active {
@@ -339,27 +216,17 @@ body.koko-body {
 }
 
 /* State: Sipping Coffee */
+.mascot-stage.is-sipping .companion-fluid-video.state-idle,
 .mascot-stage.is-sipping .companion-state-img.state-idle {
   opacity: 0;
   transform: scale(0.97);
 }
 
-.mascot-stage.is-sipping .companion-state-img.state-blink {
-  opacity: 0 !important;
-  animation: none !important;
-}
-
-.mascot-stage.is-sipping .companion-hair-strand {
-  opacity: 0.15;
-}
-
+.mascot-stage.is-sipping .companion-fluid-video.state-sip,
 .mascot-stage.is-sipping .companion-state-img.state-sip {
   opacity: 1;
+  pointer-events: auto !important;
   transform: scale(1.02) translateY(-2px);
-}
-
-.mascot-stage.is-sipping .coffee-steam-container {
-  transform: translateY(-8px) scale(1.1);
 }
 
 @keyframes alive-breathe {
