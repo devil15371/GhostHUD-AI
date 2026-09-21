@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Koko is an always-on-top anime study companion that explains lectures, deconstructs equations, and floats over your screen. Powered by Gemini AI.">
   <title>Koko — Alive Study Companion</title>
   <link rel="stylesheet" href="vendor/katex.min.css">
   <link rel="stylesheet" href="style.css">
@@ -29,14 +30,14 @@
         <div class="mascot-ambient-glow"></div>
 
         <!-- 1. Fluid Living Idle Video Loop (Continuous organic breathing, silk hair breeze waves, natural eyelid blinks & swirling steam) -->
-        <video id="video-mascot-idle" class="companion-fluid-video state-idle" autoplay loop muted playsinline poster="assets/companion_alive_idle.png">
+        <video id="video-mascot-idle" class="companion-fluid-video state-idle" autoplay loop muted playsinline poster="assets/companion_alive_idle.png" onerror="this.classList.add('video-error')">
           <source src="assets/koko_idle_loop.webm" type="video/webm">
           <!-- Animated WebP fallback if video element fails -->
           <img src="assets/koko_idle_loop.webp" alt="Koko relaxed study" class="companion-state-img state-idle" id="img-mascot-idle">
         </video>
 
         <!-- 2. Fluid Coffee Sipping Video Loop (Mug smoothly rises to lips, eyes close in cozy warmth, lowers back down) -->
-        <video id="video-mascot-sip" class="companion-fluid-video state-sip" muted playsinline poster="assets/companion_alive_sip.png">
+        <video id="video-mascot-sip" class="companion-fluid-video state-sip" muted playsinline poster="assets/companion_alive_sip.png" onerror="this.classList.add('video-error')">
           <source src="assets/koko_sip_loop.webm" type="video/webm">
           <img src="assets/koko_sip_loop.webp" alt="Koko drinking coffee" class="companion-state-img state-sip" id="img-mascot-sip">
         </video>

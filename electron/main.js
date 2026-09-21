@@ -52,17 +52,31 @@ function saveStoredApiKey(key) {
   const cleanKey = (key || '').trim();
   process.env.GEMINI_API_KEY = cleanKey;
 
-  // Save to .env file if writable
+  // Update .env file preserving existing content (only change GEMINI_API_KEY line)
   const envPath = path.join(__dirname, '../.env');
   try {
-    fs.writeFileSync(envPath, `GEMINI_API_KEY=${cleanKey}\n`, 'utf8');
-  } catch (e) {}
+    let content = '';
+    if (fs.existsSync(envPath)) {
+      content = fs.readFileSync(envPath, 'utf8');
+    }
+    // Replace existing GEMINI_API_KEY line or append it
+    if (/^GEMINI_API_KEY\s*=/m.test(content)) {
+      content = content.replace(/^GEMINI_API_KEY\s*=.*$/m, `GEMINI_API_KEY=${cleanKey}`);
+    } else {
+      content = content.trimEnd() + `\nGEMINI_API_KEY=${cleanKey}\n`;
+    }
+    fs.writeFileSync(envPath, content, 'utf8');
+  } catch (e) {
+    console.warn('Could not write .env file:', e.message);
+  }
 
   // Also save to userData secure storage
   const configPath = path.join(app.getPath('userData'), 'secure_config.json');
   try {
     fs.writeFileSync(configPath, JSON.stringify({ apiKey: cleanKey }, null, 2), 'utf8');
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Could not write secure_config.json:', e.message);
+  }
 }
 
 function createWindow() {

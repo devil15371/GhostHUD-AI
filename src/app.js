@@ -266,6 +266,14 @@
     }
   }
 
+  /* --------------------------------------------------------------------------
+     Living Companion Interactions: Coffee Sipping & Eye Blinks
+     -------------------------------------------------------------------------- */
+  let isSipping = false;
+  let sipTimer = null;
+  let coffeeInterval = null;
+  let blinkInterval = null;
+
   function wakeToExpanded(notifyElectron = true) {
     isMascotMode = false;
     container.classList.remove('mascot-view');
@@ -292,13 +300,6 @@
 
     resetIdleTimer();
   }
-
-  /* --------------------------------------------------------------------------
-     Living Companion Interactions: Coffee Sipping & Eye Blinks
-     -------------------------------------------------------------------------- */
-  let isSipping = false;
-  let sipTimer = null;
-  let coffeeInterval = null;
 
   const coffeeThoughts = [
     "Warm coffee! ☕",
@@ -362,12 +363,29 @@
         drinkCoffee();
       }
     }, 18000);
+
+    // Natural blink interval: random 2.5–6s cadence
+    if (blinkInterval) clearInterval(blinkInterval);
+    function scheduleBlink() {
+      const delay = 2500 + Math.random() * 3500;
+      blinkInterval = setTimeout(() => {
+        if (isMascotMode && !isSipping) {
+          triggerBlink(Math.random() < 0.25);
+        }
+        scheduleBlink();
+      }, delay);
+    }
+    scheduleBlink();
   }
 
   function stopCoffeeSchedule() {
     if (coffeeInterval) {
       clearInterval(coffeeInterval);
       coffeeInterval = null;
+    }
+    if (blinkInterval) {
+      clearTimeout(blinkInterval);
+      blinkInterval = null;
     }
   }
 
@@ -686,7 +704,16 @@
     }
 
     if (window.marked) {
-      try { return window.marked.parse(processed); } catch (e) {}
+      try {
+        let html = window.marked.parse(processed);
+        // Sanitize: strip dangerous tags (script, iframe, object, embed, form)
+        html = html.replace(/<(script|iframe|object|embed|form)(\s|>)[\s\S]*?<\/\1>/gi, '');
+        html = html.replace(/<(script|iframe|object|embed|form)(\s[^>]*)?\/>/gi, '');
+        // Strip event handler attributes (onerror, onclick, onload, etc.)
+        html = html.replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '');
+        html = html.replace(/\s+on\w+\s*=\s*\S+/gi, '');
+        return html;
+      } catch (e) {}
     }
 
     return escapeHtml(processed);
@@ -897,6 +924,15 @@
       return;
     }
     welcomeCard.style.display = 'none';
+    // Cap stored messages at 50, strip base64 images from older entries to prevent localStorage overflow
+    if (config.messages.length > 50) {
+      config.messages = config.messages.slice(-50);
+    }
+    config.messages.forEach((m, i) => {
+      if (i < config.messages.length - 10 && m.image && m.image.startsWith('data:')) {
+        m.image = null; // Free base64 from old messages
+      }
+    });
     config.messages.slice(-30).forEach(m => appendChatBubble(m));
     chatFeed.scrollTop = chatFeed.scrollHeight;
   }

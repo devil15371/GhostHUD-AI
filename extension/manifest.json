@@ -28,7 +28,8 @@
         "src/style.css",
         "src/app.js",
         "src/pip.js",
-        "src/vendor/*"
+        "src/vendor/*",
+        "src/assets/*"
       ],
       "matches": ["<all_urls>"]
     }

@@ -238,6 +238,37 @@ body.koko-body {
   }
 }
 
+/* Natural Eye Blink: rapid flash to blink frame via CSS opacity swap */
+.mascot-figure-wrapper.blink-active .companion-fluid-video.state-idle,
+.mascot-figure-wrapper.blink-active .companion-state-img.state-idle {
+  opacity: 0;
+  transition: opacity 0.06s ease;
+}
+
+.mascot-figure-wrapper.blink-active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('assets/companion_alive_blink.png') center / contain no-repeat;
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.95)) contrast(1.08) saturate(1.05);
+  z-index: 6;
+  opacity: 1;
+  pointer-events: none;
+  animation: blink-flash 0.16s ease-out;
+}
+
+@keyframes blink-flash {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+/* Video error fallback: show poster PNG if video fails */
+.companion-fluid-video.video-error {
+  display: none;
+}
+
+
 /* Speech Bubble above Alive Figure */
 .mascot-bubble {
   position: absolute;
