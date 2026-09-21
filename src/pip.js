@@ -52,11 +52,11 @@
         }
       });
 
-      // Style PiP body
-      pipWindow.document.body.className = 'ghosthud-body';
+      // Style PiP body with deep dark background
+      pipWindow.document.body.className = 'koko-body pip-window';
       pipWindow.document.body.style.margin = '0';
       pipWindow.document.body.style.overflow = 'hidden';
-      pipWindow.document.body.style.background = '#0d1017';
+      pipWindow.document.body.style.background = '#080b12';
 
       // Move the HUD container into the PiP window
       const hudContainer = document.getElementById('hud-container');
