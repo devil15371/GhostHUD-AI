@@ -153,6 +153,11 @@
       config.model = 'gemini-3.6-flash';
     }
 
+    // Purge old canned demo messages from chat history
+    if (Array.isArray(config.messages)) {
+      config.messages = config.messages.filter(m => !m.text || (!m.text.includes('pipes of different widths') && !m.text.includes('conservation principle on this slide')));
+    }
+
     selectModel.value = config.model;
     toggleMascotIdle.checked = config.mascotIdleEnabled !== false;
     sliderMascotDelay.value = config.mascotDelay || 4;
@@ -819,10 +824,8 @@
           bubbleEl.innerHTML = renderFormatted(res.reply);
           attachCopyBtn(itemEl, res.reply);
           config.messages.push({ role: 'assistant', text: res.reply, timestamp: Date.now() });
-        } else if (res.isDemo || res.error === 'NO_API_KEY') {
-          await runSmartDemo(text, attached, bubbleEl, itemEl);
         } else {
-          throw new Error(res.error || 'Could not get response');
+          throw new Error(res.error || 'Could not get response from Gemini');
         }
       } else {
         // Web fallback (try local server API proxy first)
@@ -859,7 +862,7 @@
           if (webKey) {
             await runDirectWebGemini(webKey, text, attached, bubbleEl, itemEl);
           } else {
-            await runSmartDemo(text, attached, bubbleEl, itemEl);
+            throw new Error('No API key configured. Open Settings (⚙️) to save your key.');
           }
         }
       }
